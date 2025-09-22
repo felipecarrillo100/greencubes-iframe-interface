@@ -13,13 +13,6 @@ export default defineConfig({
         }),
     ],
 
-    resolve: {
-        alias: {
-            // Points "@lib" to your library root/src
-            "@lib": path.resolve(__dirname, "../src"),
-        },
-    },
-
     server: {
         port: 5173, // you can change this if needed
         // Open sample.html automatically in browser

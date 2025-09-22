@@ -1,90 +1,75 @@
-// Shared contract between iframe and parent
-// Import your common Feature type if you already have one
+// src/lib/iframeMessages.ts
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
-import {MapNavigatorAnimationOptions} from "@luciad/ria/view/MapNavigator";
-
-// ==============================
-// Base message type
-// ==============================
+import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 
 /**
- * Generic message format for communication between parent and iframe.
+ * Base message type for communication between parent and iframe.
  *
- * @template T Message type string
- * @template D Message data payload type
+ * @template T The message type string.
+ * @template D The shape of the data payload.
  */
 export interface BaseMessage<T extends string, D> {
-    /** Type discriminator */
+    /** Discriminator for the type of message */
     type: T;
-
-    /** Data payload */
+    /** Data payload of the message */
     data: D;
-
-    /** Optional identifier when multiple iframes are used */
+    /** Optional frame identifier for multiple iframes */
     frameId?: string;
 }
 
 // ==============================
-// Iframe → Parent messages
+// Messages sent from Iframe → Parent
 // ==============================
 
 /**
- * Messages that can be sent from iframe → parent window.
+ * Messages that can be sent from an iframe to the parent window.
  */
 export type IframeToParentMessage =
     | BaseMessage<"LayerTreeChange", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }>
     | BaseMessage<"ClickedItem", { feature: Feature }>
     | BaseMessage<"SelectedItems", { features: Feature[] }>
-    | BaseMessage<"Ready", {targetLayerId?: string}>
+    | BaseMessage<"Ready", { targetLayerId?: string }>
     | BaseMessage<"Error", { message: string }>;
 
 // ==============================
-// Parent → Iframe messages
+// Messages sent from Parent → Iframe
 // ==============================
 
 /**
- * Messages that can be sent from parent → iframe.
+ * Messages that can be sent from the parent window to an iframe.
  */
 export type ParentToIframeMessage =
     | BaseMessage<"HighlightFeature", { featureId: FeatureId }>
     | BaseMessage<"SelectFeatures", { featureIds: FeatureId[] }>
-    | BaseMessage<"RemoveLayer", { layerId?: string}>
-    | BaseMessage<"ZoomToSelection", { featureIds: FeatureId[]; animate?: boolean | MapNavigatorAnimationOptions | undefined }>
-    | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions | undefined }>;
+    | BaseMessage<"RemoveLayer", { layerId?: string }>
+    | BaseMessage<"ZoomToSelection", { featureIds: FeatureId[]; animate?: boolean | MapNavigatorAnimationOptions }>
+    | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>;
 
 // ==============================
-// Union type (all directions)
+// Type maps for strict autocomplete
 // ==============================
 
-/**
- * Union of all iframe ↔ parent messages.
- */
-export type IframeMessage = IframeToParentMessage | ParentToIframeMessage;
+/** Map of Iframe → Parent message types to their data payloads */
+type IframeToParentMap = { [M in IframeToParentMessage as M["type"]]: M["data"] };
 
-/**
- * Helper to extract the `data` payload type by message `type`.
- */
-export type ExtractData<M extends IframeMessage["type"]> =
-    Extract<IframeMessage, { type: M }>["data"];
+/** Map of Parent → Iframe message types to their data payloads */
+type ParentToIframeMap = { [M in ParentToIframeMessage as M["type"]]: M["data"] };
 
 // ==============================
-// Parent side helpers
+// Senders with strict types & autocomplete
 // ==============================
 
 /**
- * Send a message to a specific iframe element.
+ * Sends a message from the parent to a specific iframe.
  *
- * @param iframeEl Target iframe element
- * @param msg Message to send
- * @param origin Origin restriction (default: "*")
+ * @template T Type of the message.
+ * @param iframeEl Target iframe element.
+ * @param msg Message object containing type, data, and optional frameId.
+ * @param origin Optional origin restriction (default "*").
  */
-export function sendToIframe<M extends ParentToIframeMessage["type"]>(
+export function sendToIframe<T extends keyof ParentToIframeMap>(
     iframeEl: HTMLIFrameElement,
-    msg: {
-        type: M;
-        data: Extract<ParentToIframeMessage, { type: M }>["data"];
-        frameId?: string;
-    },
+    msg: { type: T; data: ParentToIframeMap[T]; frameId?: string },
     origin: string = "*"
 ) {
     if (!iframeEl.contentWindow) {
@@ -95,94 +80,87 @@ export function sendToIframe<M extends ParentToIframeMessage["type"]>(
 }
 
 /**
- * Listen for messages from one or multiple iframes.
+ * Sends a message from an iframe to its parent window.
  *
- * @param iframeRefs Map of `{ frameId → iframeEl }`
- * @param handler Callback invoked with typed message and detected `frameId`
- * @returns Cleanup function to remove the event listener
+ * @template T Type of the message.
+ * @param msg Message object containing type, data, and optional frameId.
+ * @param origin Optional origin restriction (default "*").
  */
-export function listenFromIframes(
-    iframeRefs: Record<string, HTMLIFrameElement | null>,
-    handler: (msg: IframeToParentMessage, sourceFrameId?: string) => void
-) {
-    function listener(ev: MessageEvent<IframeToParentMessage>) {
-        const msg = ev.data;
-        if (!msg || typeof msg.type !== "string") return;
-
-        // Try to detect which iframe sent this
-        let detectedFrameId: string | undefined;
-        for (const [frameId, iframeEl] of Object.entries(iframeRefs)) {
-            if (iframeEl && iframeEl.contentWindow === ev.source) {
-                detectedFrameId = frameId;
-                break;
-            }
-        }
-        if (msg.frameId && !detectedFrameId) {
-            detectedFrameId = msg.frameId;
-        }
-
-        handler(msg, detectedFrameId);
-    }
-
-    window.addEventListener("message", listener);
-
-    return () => window.removeEventListener("message", listener);
-}
-
-// ==============================
-// Iframe side helpers
-// ==============================
-
-/**
- * Send a message from iframe → parent.
- *
- * @param msg Message to send
- * @param origin Origin restriction (default: "*")
- */
-export function sendToParent<M extends IframeToParentMessage["type"]>(
-    msg: {
-        type: M;
-        data: Extract<IframeToParentMessage, { type: M }>["data"];
-        frameId?: string;
-    },
+export function sendToParent<T extends keyof IframeToParentMap>(
+    msg: { type: T; data: IframeToParentMap[T]; frameId?: string },
     origin: string = "*"
 ) {
     if (window.self === window.top) {
-        console.warn("sendToParent: not inside iframe");
+        console.warn("sendToParent: not inside an iframe");
         return;
     }
-    window.parent?.postMessage(msg, origin);
+    window.parent.postMessage(msg, origin);
 }
 
+// ==============================
+// Listeners for messages
+// ==============================
+
 /**
- * Listen for messages sent from parent → iframe.
+ * Listens for messages sent from one or multiple iframes.
  *
- * @param handler Callback invoked with typed message
- * @returns Cleanup function to remove the event listener
+ * @param iframeRefs Map of frameId → iframe element.
+ * @param handler Callback invoked with typed message and detected frameId.
+ * @returns A function to remove the listener.
  */
-export function listenFromParent(
-    handler: (msg: ParentToIframeMessage) => void
+export function listenFromIframes(
+    iframeRefs: Record<string, HTMLIFrameElement | null>,
+    handler: (msg: IframeToParentMessage, frameId?: string) => void
 ) {
-    function listener(ev: MessageEvent<ParentToIframeMessage>) {
+    const listener = (ev: MessageEvent<IframeToParentMessage>) => {
         const msg = ev.data;
         if (!msg || typeof msg.type !== "string") return;
-        handler(msg);
-    }
+
+        let detectedFrameId: string | undefined;
+        for (const [id, iframe] of Object.entries(iframeRefs)) {
+            if (iframe?.contentWindow === ev.source) {
+                detectedFrameId = id;
+                break;
+            }
+        }
+        if (!detectedFrameId && msg.frameId) detectedFrameId = msg.frameId;
+
+        handler(msg, detectedFrameId);
+    };
 
     window.addEventListener("message", listener);
-
     return () => window.removeEventListener("message", listener);
 }
 
 /**
- * Log a message to console if `?debug=true` is present in URL.
+ * Listens for messages sent from parent → iframe.
  *
- * @param message Message to log
+ * @param handler Callback invoked with typed message.
+ * @returns A function to remove the listener.
+ */
+export function listenFromParent(handler: (msg: ParentToIframeMessage) => void) {
+    const listener = (ev: MessageEvent<ParentToIframeMessage>) => {
+        const msg = ev.data;
+        if (!msg || typeof msg.type !== "string") return;
+        handler(msg);
+    };
+
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+}
+
+// ==============================
+// Debug helper
+// ==============================
+
+/**
+ * Logs a message to the console if `?debug=true` is present in the URL.
+ *
+ * @param message Message string to log.
  */
 export function consoleOnDebugMode(message: string) {
     const params = new URLSearchParams(window.location.search);
-    const debug = params.get("debug") || null;
-    if (debug === "true") {
+    if (params.get("debug") === "true") {
         console.log(message);
     }
 }
