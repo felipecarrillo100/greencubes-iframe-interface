@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "target": "ES2019",
+    "module": "CommonJS",
+    "strict": true,
+    "skipLibCheck": true,
+    "removeComments": false
+  },
+  "include": ["src"]
+}
