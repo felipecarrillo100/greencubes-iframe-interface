@@ -20,7 +20,7 @@ import SCROLL_GLB from "ria-toolbox/libs/scene-navigation/gizmo/gizmo_octhedron.
 import {SceneNavigationController} from "ria-toolbox/libs/scene-navigation/SceneNavigationController";
 import {MapNavigatorAnimationOptions} from "@luciad/ria/view/MapNavigator";
 import {LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
-import {listenFromParent, type ParentToIframeMessage} from "@lib";
+import {listenFromParent, type ParentToIframeMessage} from "../../../../../src";
 
 const WebMercator = "EPSG:3857";
 const WORLD3D = "EPSG:4978";
@@ -112,18 +112,18 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     const mapRef = useRef<WebGLMap | null>(null);
     const activeLayer = useRef<FeatureLayer | null>(null);
 
-    const highlightFeature = (options:{id: FeatureId})=> {
+    const highlightFeature = (options:{ featureId:  FeatureId})=> {
         if (activeLayer.current && mapRef.current) {
             const features = activeLayer.current.workingSet.get();
-            const matches = features.filter(f=>f.id===options.id);
+            const matches = features.filter(f=>f.id===options.featureId);
             if (matches.length === 1)
             mapRef.current.selectObjects([{layer: activeLayer.current,objects: matches}]);
         }
     }
-    const selectFeatures = (options: {ids: FeatureId[]})=> {
+    const selectFeatures = (options: { featureIds:  FeatureId[]})=> {
         if (activeLayer.current && mapRef.current) {
             const features = activeLayer.current.workingSet.get();
-            const matches = features.filter(f => options.ids.includes(f.id));
+            const matches = features.filter(f => options.featureIds.includes(f.id));
             if (matches.length === 1)
                 mapRef.current.selectObjects([{layer: activeLayer.current,objects: matches}]);
         }
@@ -141,11 +141,11 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     }
 
-    const removeLayer = (options: { layerid?: string }) => {
+    const removeLayer = (options: { layerId?: string }) => {
         if (!mapRef.current) return;
 
-        const layerToRemove = options.layerid
-            ? (mapRef.current.layerTree.findLayerById(options.layerid) as FeatureLayer)
+        const layerToRemove = options.layerId
+            ? (mapRef.current.layerTree.findLayerById(options.layerId) as FeatureLayer)
             : activeLayer.current;
 
         if (layerToRemove) {
@@ -153,10 +153,10 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     };
 
-    const zoomToFeatures= (options:{ids: FeatureId[], animate?: boolean | MapNavigatorAnimationOptions | undefined})=> {
+    const zoomToFeatures= (options:{ featureIds: FeatureId[], animate?: boolean | MapNavigatorAnimationOptions | undefined})=> {
         if (activeLayer.current && mapRef.current) {
             const features = activeLayer.current.workingSet.get();
-            const matches = features.filter(f => options.ids.includes(f.id));
+            const matches = features.filter(f => options.featureIds.includes(f.id));
             if (matches.length>0) {
                 const bounds = matches[0].shape?.bounds?.copy();
                 if (bounds) {

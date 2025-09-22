@@ -48,7 +48,7 @@ export type IframeToParentMessage =
 export type ParentToIframeMessage =
     | BaseMessage<"HighlightFeature", { featureId: FeatureId }>
     | BaseMessage<"SelectFeatures", { featureIds: FeatureId[] }>
-    | BaseMessage<"RemoveLayer", { layerId: string}>
+    | BaseMessage<"RemoveLayer", { layerId?: string}>
     | BaseMessage<"ZoomToSelection", { featureIds: FeatureId[]; animate?: boolean | MapNavigatorAnimationOptions | undefined }>
     | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions | undefined }>;
 

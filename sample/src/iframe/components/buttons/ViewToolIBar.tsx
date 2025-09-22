@@ -11,7 +11,7 @@ import LandscapeIcon from "@mui/icons-material/Landscape";     // horizon / firs
 import NavigationIcon from "@mui/icons-material/Navigation";     // horizon / first-person
 
 import type { WebGLMap } from "@luciad/ria/view/WebGLMap.js";
-import {carPerspective, helicopterPerspective, rotateToNorth, turn} from "./utills/NavigationUtils.ts";
+import {carPerspective, helicopterPerspective, rotateToNorth, turn} from "./utills/NavigationUtils";
 import type {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 
 interface Props {

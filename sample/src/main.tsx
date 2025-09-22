@@ -1,7 +1,7 @@
 // sample/src/main.tsx
 import React, { useEffect, useRef } from "react";
 import ReactDOM from "react-dom/client";
-import { sendToIframe, listenFromIframes, IframeToParentMessage } from "@lib";
+import { sendToIframe, listenFromIframes, IframeToParentMessage } from "../../src";
 
 function MainApp() {
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -20,6 +20,9 @@ function MainApp() {
                         break;
                     case "ClickedItem":
                         console.log(msg.data.feature);
+                        if (iframeRef.current){
+                            sendToIframe(iframeRef.current, {type: "ZoomToSelection", data: {animate: true, featureIds: [msg.data.feature.id]}})
+                        }
                         break;
                     case "SelectedItems":
                         console.log(msg.data.features);
@@ -34,16 +37,16 @@ function MainApp() {
         if (iframeRef.current) {
             sendToIframe(iframeRef.current, {
                 type: "ZoomToLayer",
-                data: { animate: false, layerId: layer.current },
+                data: { animate: false},
             });
         }
     };
 
     const handleRemove = () => {
-        if (iframeRef.current) {
+        if (iframeRef.current && layer.current) {
             sendToIframe(iframeRef.current, {
                 type: "RemoveLayer",
-                data: { layerId: layer.current },
+                data: {layerId: layer.current}
             });
         }
     };
@@ -54,7 +57,7 @@ function MainApp() {
             <button onClick={handleClick}>Send ZoomToLayer → Iframe</button>
             <button onClick={handleRemove}>Send RemoveLayer → Iframe</button>
             <iframe
-                id="123"
+                id="1234"
                 ref={iframeRef}
                 src="/index.html?geojson=https://demo.luciad.com/GreenCubes/datasets/geojson/jungle.json&reference=EPSG:3857"
                 style={{ width: "100%", height: 480, border: "1px solid black" }}

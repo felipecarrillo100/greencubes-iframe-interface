@@ -7,8 +7,9 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type {Feature} from "@luciad/ria/model/feature/Feature.js";
 import {LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
-import {consoleOnDebugMode, sendToParent} from "@lib";
+import {consoleOnDebugMode, sendToParent} from "../../../src";
 import './App.scss';
+import {Shape} from "@luciad/ria/shape/Shape.js";
 
 const theme = createTheme({
     palette: {
@@ -59,15 +60,17 @@ const App: React.FC = () => {
 
     const onGeometryClicked = (feature: Feature)=> {
         // Detect if running inside an iframe
-        sendToParent({
-            type: "ClickedItem",
-            data: { feature: {
-                    id: feature.id,
-                    properties: feature.properties,
-                    shape: {...feature.shape, type: feature.shape?.type},
-                } },
-        });
-        consoleOnDebugMode(`Click triggered! ${feature.id}`);
+        if (feature.shape) {
+            sendToParent({
+                type: "ClickedItem",
+                data: { feature: {
+                        id: feature.id,
+                        properties: feature.properties,
+                        shape: {...feature.shape, type: feature.shape?.type} as Shape,
+                    } as Feature},
+            });
+            consoleOnDebugMode(`Click triggered! ${feature.id}`);
+        }
     }
 
     const  layerTreeChange =  (o: {layerTreeNodeChange: LayerTreeNodeChangeEvent,  type: "NodeAdded" | "NodeRemoved" | "NodeMoved"  }) => {
@@ -88,7 +91,7 @@ const App: React.FC = () => {
                     id: f.id,
                     properties: f.properties,
                     shape: {...f.shape, type: f.shape?.type},
-                })),
+                })) as Feature[],
             },
         });
         consoleOnDebugMode(`Selected triggered! [${features.map(f => f.id).join(", ")}]`);
