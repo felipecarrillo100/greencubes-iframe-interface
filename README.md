@@ -19,9 +19,9 @@ Supports strict type-checking, autocomplete, and payload validation for all mess
 Assuming your project uses npm or yarn:
 
 ```bash
-npm install @your-org/iframe-messages
+npm install greencubes-iframe-interface
 # or
-yarn add @your-org/iframe-messages
+yarn add greencubes-iframe-interface
 ```
 
 ---
