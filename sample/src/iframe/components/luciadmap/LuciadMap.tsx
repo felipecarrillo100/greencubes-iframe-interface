@@ -44,7 +44,7 @@ interface Props {
     layerTreeChange?: (o: {layerTreeNodeChange: LayerTreeNodeChangeEvent,  type: "NodeAdded" | "NodeRemoved" | "NodeMoved"  }) => void;
 }
 
-function addListenerLayerTreeChange(map: WebGLMap, featureLayer: FeatureLayer, callback?: (o: {layerTreeNodeChange: LayerTreeNodeChangeEvent,  type: "NodeAdded" | "NodeRemoved" | "NodeMoved"  }) => void) {
+function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: {layerTreeNodeChange: LayerTreeNodeChangeEvent,  type: "NodeAdded" | "NodeRemoved" | "NodeMoved"  }) => void) {
     // This code will be called every time the selection change in the map
     const action  = (actionType:  "NodeAdded" | "NodeRemoved" | "NodeMoved")=>(layerTreeNodeChange: LayerTreeNodeChangeEvent) => {
         // Find a layer by ID in the map layerTree
@@ -228,7 +228,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                         });
                         if (mapRef.current) {
                             addListenerOnSelectionChange(mapRef.current, layer, triggerOnSelectionChangeAction);
-                            addListenerLayerTreeChange(mapRef.current, layer, triggerOnLayerTreeChange);
+                            addListenerLayerTreeChange(mapRef.current, triggerOnLayerTreeChange);
                         }
                         activeLayer.current = layer;
                     } catch (_e) {

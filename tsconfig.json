@@ -10,7 +10,11 @@
     "module": "CommonJS",
     "strict": true,
     "skipLibCheck": true,
-    "removeComments": false
+    "removeComments": false,
+
+    // Add these for unused variable/parameter warnings
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": ["src"]
 }
