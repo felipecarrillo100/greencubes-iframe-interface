@@ -60,6 +60,64 @@ type ParentToIframeMessage =
   | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>;
 ```
 
+A more detailed example here
+```typescript
+import React, { useRef, useEffect } from "react";
+import ReactDOM from "react-dom/client";
+import { sendToIframe, listenFromIframes, IframeToParentMessage } from "@lib";
+
+function MainApp() {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Listen for messages from iframe
+  useEffect(() => {
+    const stop = listenFromIframes(
+      { demo: iframeRef.current },
+      (msg: IframeToParentMessage, frameId?: string) => {
+        console.log("Parent received:", msg, "from iframe:", frameId);
+          switch (msg.type) {
+              case "Ready":
+                  layer.current = msg.data.targetLayerId;
+                  console.log(msg.data.targetLayerId);
+                  break;
+              case "ClickedItem":
+                  console.log(msg.data.feature);
+                  if (iframeRef.current){
+                      sendToIframe(iframeRef.current, {type: "ZoomToSelection", data: {animate: true, featureIds: [msg.data.feature.id]}})
+                  }
+                  break;
+          }
+      }
+    );
+    return () => stop();
+  }, []);
+
+  const handleClick = () => {
+    if (iframeRef.current) {
+      sendToIframe(iframeRef.current, {
+        type: "ZoomToLayer",
+        data: { animate: false },
+      });
+    }
+  };
+
+  return (
+    <div>
+      <h1>Main App (Parent)</h1>
+      <button onClick={handleClick}>Send ZoomToLayer → Iframe</button>
+      <iframe
+        ref={iframeRef}
+        src="/iframe.html"
+        style={{ width: "100%", height: 480, border: "1px solid black" }}
+      />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(<MainApp />);
+
+```
+
 ---
 
 ## Usage
