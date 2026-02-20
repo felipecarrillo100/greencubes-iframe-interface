@@ -1,6 +1,6 @@
 import {MemoryStore} from "@luciad/ria/model/store/MemoryStore.js";
 import {FeatureModel} from "@luciad/ria/model/feature/FeatureModel.js";
-import {ShapeIndexPainter} from "./ShapeIndexPainter.ts";
+import {BasicIconPainter} from "./BasicIconPainter.ts";
 import {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 import {Feature} from "@luciad/ria/model/feature/Feature.js";
 import {createPoint} from "@luciad/ria/shape/ShapeFactory.js";
@@ -34,7 +34,7 @@ export async function loadLabels(
         const store = new MemoryStore({ reference, data: transformDataToFeatures(data) });
 
         const model = new FeatureModel(store, { reference });
-        const painter = new ShapeIndexPainter();
+        const painter = new BasicIconPainter();
         return new FeatureLayer(model, {
             label: "Labels",
             selectable: true,

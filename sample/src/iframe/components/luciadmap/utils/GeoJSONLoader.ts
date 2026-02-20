@@ -6,7 +6,7 @@ import {RasterTileSetLayer} from "@luciad/ria/view/tileset/RasterTileSetLayer.js
 import {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 import {MemoryStore} from "@luciad/ria/model/store/MemoryStore.js";
 import {FeatureModel} from "@luciad/ria/model/feature/FeatureModel.js";
-import {ShapeIndexPainter} from "./ShapeIndexPainter";
+import {BasicIconPainter} from "./BasicIconPainter";
 import {Feature} from "@luciad/ria/model/feature/Feature.js";
 import {GeoJsonCodec} from "@luciad/ria/model/codec/GeoJsonCodec.js";
 
@@ -50,7 +50,7 @@ export async function loadGeoJson(
         const store = new MemoryStore({ reference, data: transformDataToFeatures(text) });
 
         const model = new FeatureModel(store, { reference });
-        const painter = new ShapeIndexPainter();
+        const painter = new BasicIconPainter();
         return new FeatureLayer(model, {
             label: "Labels",
             selectable: true,

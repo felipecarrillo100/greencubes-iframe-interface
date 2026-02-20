@@ -1,58 +1,74 @@
-import React from "react";
-import { styled } from "@mui/material/styles";
+import { WebGLMap } from "@luciad/ria/view/WebGLMap.js";
+import { LayerAttribution, TileSetAttributionProvider } from "@luciad/ria/view/tileset/TileSetAttributionProvider.js";
+import { ReactNode, useEffect, useState } from "react";
+import "./Attribution.css";
 
-interface AttributionProps {
-    text?: string;     // Optional tooltip or alt text for the user logo
-    url: string;       // URL for the user link
-    image?: string;     // URL or imported image (png, jpg, svg, etc.)
+interface Props {
+    map: WebGLMap | null;
+    staticAttributions?: ReactNode;
 }
 
-// Hardcoded company image and URL
-const COMPANY_IMAGE = "./GreenCubes_CombineLogo.png"; // replace with your company logo URL
-const COMPANY_URL = "https://hexagon.com/";
+export const Attribution = ({ map, staticAttributions }: Props) => {
+    const [layerAttributions, setLayerAttributions] = useState<LayerAttribution[]>([]);
 
-const AttributionWrapper = styled("div")({
-    position: "fixed",
-    bottom: 16,
-    left: 16,
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    pointerEvents: "auto",
-    zIndex: 1000,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    padding: "6px 10px",
-    borderRadius: 8,
-    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-    fontSize: 14,
-});
+    useEffect(() => {
+        if (!map) {
+            setLayerAttributions([]);
+            return;
+        }
 
-const AttributionImage = styled("img")({
-    height: 32,
-    width: "auto",
-    cursor: "pointer",
-    borderRadius: 4,
-    objectFit: "contain",
-    transition: "transform 0.2s",
-    "&:hover": {
-        transform: "scale(1.05)",
-    },
-});
+        const attributionProvider = new TileSetAttributionProvider(map);
 
-export const Attribution: React.FC<AttributionProps> = ({ text, url, image }) => {
+        // Initial sync
+        setLayerAttributions(attributionProvider.getLayerAttributions());
+
+        // Automatically detects when layers are hidden or added
+        const listener = attributionProvider.on("LayerAttributionsChanged", (newAttributions) => {
+            setLayerAttributions(newAttributions);
+        });
+
+        return () => {
+            listener.remove();
+        };
+    }, [map]);
+
+    // --- DEDUPLICATION LOGIC ---
+    // Flatten strings from all layers and remove duplicates
+    const uniqueNames = Array.from(new Set(
+        layerAttributions.flatMap(attr => attr.attributionStrings)
+    ));
+
+    // Flatten logos from all layers and remove duplicates
+    const uniqueLogos = Array.from(new Set(
+        layerAttributions.flatMap(attr => attr.attributionLogos as string[])
+    ));
+
+    // Don't render if there is absolutely nothing to show
+    if (uniqueNames.length === 0 && !staticAttributions && uniqueLogos.length === 0) {
+        return null;
+    }
+
     return (
-        <AttributionWrapper>
-            {/* Company Logo */}
-            <a href={COMPANY_URL} target="_blank" rel="noopener noreferrer">
-                <AttributionImage src={COMPANY_IMAGE} alt="Company Logo" />
-            </a>
+        <div className="attribution">
+            <div className="attribution-strings">
+                {uniqueNames.map((name, index) => (
+                    <div key={`name-${index}`} className="attribution-row">
+                        {name}
+                    </div>
+                ))}
+                {staticAttributions && <div className="attribution-row">{staticAttributions}</div>}
+            </div>
 
-            {/* User Logo / Custom Image */}
-            {image && url && (
-                <a href={url} target="_blank" rel="noopener noreferrer" title={text}>
-                    <AttributionImage src={image} alt={text || "Logo"} />
-                </a>
-            )}
-        </AttributionWrapper>
+            <div className="attribution-logos">
+                {uniqueLogos.map((logo, index) => (
+                    <img
+                        className="attributionLogo"
+                        alt="Provider"
+                        key={`logo-${index}`}
+                        src={logo}
+                    />
+                ))}
+            </div>
+        </div>
     );
 };

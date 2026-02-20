@@ -1,12 +1,11 @@
 import * as React from "react";
+import {useEffect, useRef, useState} from "react";
 
 import "./LuciadMap.scss"
-import {useEffect, useRef} from "react";
 import {WebGLMap} from "@luciad/ria/view/WebGLMap.js";
 import {getReference} from "@luciad/ria/reference/ReferenceProvider.js";
 import {ViewToolIBar} from "../buttons/ViewToolIBar";
-import {getRequestInitValues, loadBackground, loadGeoJson} from "./utils/GeoJSONLoader";
-import type {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
+import {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 import type {Feature, FeatureId} from "@luciad/ria/model/feature/Feature.js";
 import {DefaultController} from "@luciad/ria/view/controller/DefaultController.js";
 import {NavigationKeysMode} from "ria-toolbox/libs/scene-navigation/KeyNavigationSupport";
@@ -20,24 +19,20 @@ import SCROLL_GLB from "ria-toolbox/libs/scene-navigation/gizmo/gizmo_octhedron.
 import {SceneNavigationController} from "ria-toolbox/libs/scene-navigation/SceneNavigationController";
 import {MapNavigatorAnimationOptions} from "@luciad/ria/view/MapNavigator";
 import {LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
-import {listenFromParent, type ParentToIframeMessage} from "../../../../../src";
+import {listenFromParent, MapModeType, type ParentToIframeMessage, sendToParent} from "../../../../../src";
+import {LayerBuilder} from "./factories/LayerBuilder";
+import {CoordinateReference} from "@luciad/ria/reference/CoordinateReference";
+import {InitialMapSetup} from "./factories/LayerBuilderInterfaces";
+import {Handle} from "@luciad/ria/util/Evented";
 
 const WebMercator = "EPSG:3857";
 const WORLD3D = "EPSG:4978";
-const defaultProjection = WebMercator;
-
-// Get reference from URL query params or default to EPSG:4978
-const params = new URLSearchParams(window.location.search);
-
-const referenceIdentifier = params.get("reference") || defaultProjection;
-const geojsonUrl = params.get("geojson") || null;
-const requestInit = getRequestInitValues(params);
-
-const reference = getReference(referenceIdentifier.toUpperCase());
+const DefaultCoordinateReference = getReference(WebMercator);
 const World3DReference = getReference(WORLD3D);
 
 
 interface Props {
+    onMapReady?:(m:WebGLMap|null)=>void;
     onShowTime?: (options: {status: boolean, errorMessage?:string, targetLayerId?: string}) => void;
     geometrySelected?: (features: Feature[]) => void;
     geometryClicked?: (feature: Feature) => void;
@@ -57,9 +52,9 @@ function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: {layerTreeNode
     map.layerTree.on("NodeMoved", action("NodeMoved"));
 }
 
-function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer, callback?: (features: Feature[]) => void) {
+function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer, callback?: (features: Feature[]) => void): Handle {
     // This code will be called every time the selection change in the map
-    map.on("SelectionChanged", () => {
+    return map.on("SelectionChanged", () => {
         // Find a layer by ID in the map layerTree
         const layer = featureLayer;
         const selection = [...map.selectedObjects];
@@ -77,6 +72,8 @@ function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer,
 }
 
 export const LuciadMap: React.FC<Props> = (props: Props) => {
+    const [reference, setReference] = useState<CoordinateReference>(DefaultCoordinateReference);
+    const selectionChangeHandle = useRef<Handle|null>(null);
 
     useEffect(() => {
         // Subscribe to messages from parent
@@ -97,6 +94,15 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                 case "RemoveLayer":
                     removeLayer(msg.data);
                     break;
+                case "SetProjection":
+                    setProjection(msg.data);
+                    break;
+                case "SetInitialMapSetup":
+                    setInitialMapSetup(msg.data);
+                    break;
+                case "SetLayerGroup":
+                    setLayerGroup(msg.data);
+                    break;
                 default:
                     // @ts-ignore
                     console.warn("Unhandled message type:", msg.type);
@@ -107,6 +113,21 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
             unsubscribe();
         };
     }, []); // Depend on highlightFeature if it changes
+
+    useEffect(() => {
+        if (mapRef.current) {
+            mapRef.current.reference = reference;
+            notifyProjectionsChange(reference)
+        }
+    }, [reference]);
+
+    const notifyProjectionsChange = (reference: CoordinateReference) => {
+        const mode: MapModeType = (reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
+        sendToParent({
+            type: "ProjectionChanged",
+            data: {mode},
+        });
+    }
 
     const divRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<WebGLMap | null>(null);
@@ -140,6 +161,65 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
             }
         }
     }
+
+    const setProjection = (options: { mode?: MapModeType}) => {
+        if (options.mode==="2D") {
+            setReference(DefaultCoordinateReference)
+        } else {
+            setReference(World3DReference)
+        }
+    }
+
+    const setInitialMapSetup= (options: { settings: InitialMapSetup }) => {
+        if (options.settings && mapRef.current) {
+            setProjection(options.settings);
+            LayerBuilder.build(mapRef.current.layerTree, options.settings).then(()=>{
+                if (options.settings.targetGroupId) {
+                    mapRef.current && LayerBuilder.setTargetGroup(mapRef.current.layerTree, options.settings.targetGroupId);
+                }
+                if (options.settings.boundsFeatureLayerID &&  mapRef.current) {
+                    const boundsLayer = mapRef.current?.layerTree.findLayerById(options.settings.boundsFeatureLayerID);
+                    if (boundsLayer instanceof FeatureLayer) {
+                        if (mapRef.current.reference.equals(World3DReference)) {
+                            restrictBounds3D(mapRef.current, boundsLayer);
+                        } else {
+                            restrictBounds2D(mapRef.current, boundsLayer);
+                        }
+                    }
+                }
+                if (options.settings.targetFeatureLayerID && mapRef.current) {
+                    const targetLayer = mapRef.current?.layerTree.findLayerById(options.settings.targetFeatureLayerID);
+                    if (targetLayer && targetLayer instanceof FeatureLayer) {
+                        if (selectionChangeHandle.current !== null ) {
+                            selectionChangeHandle.current.remove();
+                            selectionChangeHandle.current =  null;
+                        }
+                        targetLayer.onClick = triggerOnClickAction;
+                        activeLayer.current = targetLayer;
+                        selectionChangeHandle.current = addListenerOnSelectionChange(mapRef.current, targetLayer, triggerOnSelectionChangeAction)
+                    }
+                }
+                if (typeof props.onShowTime === "function") props.onShowTime({status: true});
+            });
+        }
+    }
+
+    const setLayerGroup= (options: { targetGroupId: string; mode?: MapModeType }) => {
+        if (!mapRef.current) return;
+        if (options.mode) {
+            setProjection(options);
+        }
+        const newMode = options.mode ? options.mode : (reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
+        const result = LayerBuilder.setTargetGroup(mapRef.current.layerTree, options.targetGroupId);
+        // Send notification to parent
+        if (result) {
+            sendToParent({
+                type: "TargetGroupChanged",
+                data: {targetGroupId: options.targetGroupId, mode: newMode},
+            });
+        }
+    }
+
 
     const removeLayer = (options: { layerId?: string }) => {
         if (!mapRef.current) return;
@@ -194,60 +274,13 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     useEffect(() => {
         if (divRef.current) {
             mapRef.current = new WebGLMap(divRef.current, {reference});
-
-            // const backgroundLayer = loadBackground("https://a.tile.openstreetmap.org/{z}/{x}/{-y}.png");
-            const backgroundLayer = loadBackground("https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{-y}@2x.webp?sku=101uLgarUfM1u&access_token=pk.eyJ1Ijoic3Jpbml2YXNhbmFtYnVyaSIsImEiOiJjbTJpdWF2bXkwMXM4MmtxdDc5Nmh6OGVhIn0.iz4-yqZ__o9XKCqOj4Gn7w");
-            mapRef.current?.layerTree.addChild(backgroundLayer);
-
-            if (geojsonUrl) {
-                loadGeoJson(geojsonUrl, requestInit).then(layer => {
-                    try {
-                        //Add the model to the map
-                        mapRef.current?.layerTree.addChild(layer);
-                        // Zoom to the point cloud location
-                        //fit on the cities layer
-                        const queryFinishedHandle = layer.workingSet.on("QueryFinished", async () => {
-                            if (layer.bounds && mapRef.current) {
-                                //#snippet layerFit
-                                if (mapRef.current.reference.equals(World3DReference)) {
-                                    restrictBounds3D(mapRef.current, layer);
-                                } else {
-                                    restrictBounds2D(mapRef.current, layer);
-                                }
-                                await mapRef.current.mapNavigator.fit({
-                                    bounds: layer.bounds,
-                                    animate: false
-                                });
-                                if (typeof props.onShowTime === "function") {
-                                    layer.onClick = triggerOnClickAction;
-                                    props.onShowTime({status:true, targetLayerId: activeLayer.current?.id});
-                                }
-                                //#endsnippet layerFit
-                            }
-                            queryFinishedHandle.remove();
-                        });
-                        if (mapRef.current) {
-                            addListenerOnSelectionChange(mapRef.current, layer, triggerOnSelectionChangeAction);
-                            addListenerLayerTreeChange(mapRef.current, triggerOnLayerTreeChange);
-                        }
-                        activeLayer.current = layer;
-                    } catch (_e) {
-                        if (typeof props.onShowTime === "function") props.onShowTime({status:false});
-                        if (mapRef.current && !layer.model.reference.equals(mapRef.current.reference)) {
-                            console.log(`"Map and data are not in the same reference. Layer is in: ${layer.model.reference.identifier}`)
-                        }
-                    }
-                }).catch(() => {
-                    if (typeof props.onShowTime === "function") props.onShowTime({status:false});
-                    console.log(`Data unreachable`)
-                });
-            } else {
-                if (typeof props.onShowTime === "function") props.onShowTime({status:false, errorMessage: "Missing GeoJSON URL"});
-            }
+            addListenerLayerTreeChange(mapRef.current, triggerOnLayerTreeChange);
+            if (typeof props.onMapReady === "function") props.onMapReady(mapRef.current);
         }
         return () => {
             if (mapRef.current) mapRef.current.destroy();
             mapRef.current = null;
+            if (typeof props.onMapReady === "function") props.onMapReady(null);
         }
     }, []);
 
@@ -258,7 +291,6 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         </div>
     )
 }
-
 
 function restrictBounds3D(map: WebGLMap | null, layer: FeatureLayer) {
     if (!map) return;
@@ -304,7 +336,7 @@ function restrictBounds2D(map: WebGLMap | null, layer: FeatureLayer) {
     };
 }
 
-function calculateBounds(layer: FeatureLayer, mode?: "2D" | "3D") {
+function calculateBounds(layer: FeatureLayer, mode?: MapModeType) {
     const currentMode = mode ? mode: "2D";
     const valueOnMode = (value: number)=> {
         return currentMode === "2D" ? 0 : value;

@@ -1,15 +1,15 @@
 import * as React from "react";
 import { LuciadMap } from "./components/luciadmap/LuciadMap";
-import { FullscreenButton } from "./components/fullscreen/FullscreenButton";
 import { Attribution } from "./components/attribution/Attribution";
-import { useRef, useState } from "react";
+import {useEffect, useRef, useState} from "react";
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type {Feature} from "@luciad/ria/model/feature/Feature.js";
 import {LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
-import {consoleOnDebugMode, sendToParent} from "../../../src";
+import {consoleOnDebugMode, MapModeType, sendToParent} from "../../../src";
 import './App.scss';
 import {Shape} from "@luciad/ria/shape/Shape.js";
+import {WebGLMap} from "@luciad/ria/view/WebGLMap.js";
 
 const theme = createTheme({
     palette: {
@@ -21,6 +21,17 @@ const App: React.FC = () => {
     const contentRef = useRef<HTMLDivElement | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [map, setMap] = useState<WebGLMap|null>(null);
+
+    useEffect(() => {
+        const mode: MapModeType = (map?.reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
+        sendToParent({
+            type: "MapReady",
+            data: {
+                mode
+            }
+        });
+    }, [map]);
 
     const onShowTime = (o: {status: boolean, errorMessage?:string, targetLayerId?: string}) => {
         if (o.status) {
@@ -32,10 +43,6 @@ const App: React.FC = () => {
                     contentRef.current.style.opacity = "1";
                 }
             });
-            sendToParent({
-                type: "Ready",
-                data: {targetLayerId: o.targetLayerId}
-            });
             consoleOnDebugMode("Showtime triggered!");
         } else {
             setLoading(false);
@@ -46,15 +53,6 @@ const App: React.FC = () => {
                 data: {message}
             });
             consoleOnDebugMode(`Error triggered! ${message}`);
-        }
-    };
-
-    const handleFullscreen = () => {
-        const elem = document.documentElement;
-        if (!document.fullscreenElement) {
-            elem.requestFullscreen().catch(err => console.error(err));
-        } else {
-            document.exitFullscreen();
         }
     };
 
@@ -114,9 +112,9 @@ const App: React.FC = () => {
                 <div className="AppContent" ref={contentRef} style={{ opacity: 0 }}>
                     <LuciadMap onShowTime={onShowTime} geometrySelected={onGeometrySelected} geometryClicked={onGeometryClicked}
                                layerTreeChange={layerTreeChange}
+                               onMapReady={(m)=>setMap(m)}
                     />
-                    <FullscreenButton onClick={handleFullscreen} />
-                    <Attribution text="Green Cubes" url="https://www.google.com" />
+                    <Attribution map={map} />
                 </div>
                 {(!loading && error) && (
                     <div className="Errorverlay">

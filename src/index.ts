@@ -1,6 +1,7 @@
 // src/lib/iframeMessages.ts
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
+import {InitialMapSetup} from "../sample/src/iframe/components/luciadmap/factories/LayerBuilderInterfaces";
 
 /**
  * Base message type for communication between parent and iframe.
@@ -17,6 +18,7 @@ export interface BaseMessage<T extends string, D> {
     frameId?: string;
 }
 
+export type MapModeType = "2D" | "3D";
 // ==============================
 // Messages sent from Iframe → Parent
 // ==============================
@@ -25,10 +27,12 @@ export interface BaseMessage<T extends string, D> {
  * Messages that can be sent from an iframe to the parent window.
  */
 export type IframeToParentMessage =
+    | BaseMessage<"ProjectionChanged", { mode: MapModeType}>
+    | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType}>
     | BaseMessage<"LayerTreeChange", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }>
     | BaseMessage<"ClickedItem", { feature: Feature }>
     | BaseMessage<"SelectedItems", { features: Feature[] }>
-    | BaseMessage<"Ready", { targetLayerId?: string }>
+    | BaseMessage<"MapReady", { mode: MapModeType}>
     | BaseMessage<"Error", { message: string }>;
 
 // ==============================
@@ -39,6 +43,9 @@ export type IframeToParentMessage =
  * Messages that can be sent from the parent window to an iframe.
  */
 export type ParentToIframeMessage =
+    | BaseMessage<"SetInitialMapSetup", { settings: InitialMapSetup }>
+    | BaseMessage<"SetLayerGroup", { targetGroupId: string, mode?: MapModeType}>
+    | BaseMessage<"SetProjection", { mode: MapModeType }>
     | BaseMessage<"HighlightFeature", { featureId: FeatureId }>
     | BaseMessage<"SelectFeatures", { featureIds: FeatureId[] }>
     | BaseMessage<"RemoveLayer", { layerId?: string }>

@@ -45,16 +45,34 @@ const SelectedStyle: ShapeStyle = {
     zOrder: 0
 };
 
-export class ShapeIndexPainter extends FeaturePainter {
+interface ShapeIndexPainterContructorOptions {
+    url?: string;
+    width?: number;
+    height?: number;
+    zOrder?: number;
+}
+
+export class BasicIconPainter extends FeaturePainter {
+    private url: string;
+    private width: number;
+    private height: number;
+    private zOrder: number;
+    constructor(options?:ShapeIndexPainterContructorOptions) {
+        super();
+        this.url = options?.url ? options.url : "./map_marker.png";
+        this.width = options?.width ? options.width : 28;
+        this.height = options?.height ? options.height : 28;
+        this.zOrder = options?.zOrder ? options.zOrder : 1000;
+    }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     paintBody(geoCanvas: GeoCanvas, _feature: Feature, shape: Shape, _layer: Layer, _map: Map, paintState: PaintState) {
         if (shape instanceof Point) {
             // Define base icon style
             const iconStyle: UrlIconStyle = {
-                url: "./map_marker.png",
-                width: 28,
-                height: 28,
-                zOrder: 1000
+                url: this.url,
+                width: this.width,
+                height: this.height,
+                zOrder: this.zOrder,
             };
 
             // Apply modulation color based on state
