@@ -5,6 +5,19 @@ import {ModelFactory} from "./ModelFactory";
 import {LayerFactory, SharedLayerGroup} from "./LayerFactory";
 import {BuilderLayerType, LayerConfig, LayerTreeConfig} from "./LayerBuilderInterfaces";
 import {LayerTreeNodeType} from "@luciad/ria/view/LayerTreeNodeType";
+import {LayerTreeVisitor} from "@luciad/ria/view/LayerTreeVisitor";
+import {Layer} from "@luciad/ria/view/Layer.js";
+import {RasterTileSetLayer} from "@luciad/ria/view/tileset/RasterTileSetLayer.js";
+import {FusionTileSetModel} from "@luciad/ria/model/tileset/FusionTileSetModel";
+
+
+/**
+ * Represents the basic state of an elevation layer.
+ */
+export interface ElevationLayerState {
+    id: string;
+    visible: boolean;
+}
 
 export class LayerBuilder {
 
@@ -49,11 +62,14 @@ export class LayerBuilder {
                 // If no siblings are ready yet, we add to TOP.
                 // This ensures that when the "actual" bottom layers arrive later,
                 // they can find us and slot themselves "below" us.
-                root.addChild(layerNode, "top");
+                try {
+                    root.addChild(layerNode, "top");
+                } catch (e) {
+                    console.error(layerNode);
+                    console.error(e);
+                }
             }
-
             slots[index] = layerNode;
-
         } catch (error) {
             console.error(`[LayerBuilder][Index ${index}] Error:`, error);
         }
@@ -99,6 +115,8 @@ export class LayerBuilder {
     private static async createLayer(node: Exclude<LayerConfig, { type: BuilderLayerType.GROUP }>): Promise<LayerTreeNode | null> {
         try {
             switch (node.type) {
+                case BuilderLayerType.ELEVATION:
+                    return await LayerFactory.createElevationLayer(await ModelFactory.createElevationModel(node.modelOptions), node.layerOptions);
                 case BuilderLayerType.AZURE:
                     return await LayerFactory.createAzureTilesLayer(await ModelFactory.createAzureMapsModel(node.modelOptions), node.layerOptions);
                 case BuilderLayerType.GOOGLE:
@@ -139,6 +157,54 @@ export class LayerBuilder {
             return true;
         } catch (error) {
             return false;
+        }
+    }
+
+    /**
+     * Represents the basic state of an elevation layer.
+     */
+
+    static saveElevationLayers(layerTree: LayerTree): ElevationLayerState[] {
+        const elevationLayers : RasterTileSetLayer[] = [];
+        const layerTreeVisitor = {
+            visitLayer: (layer: Layer) => {
+                if (layer instanceof RasterTileSetLayer) {
+                    if (layer.model instanceof FusionTileSetModel) {
+                        elevationLayers.push(layer);
+                    }
+                }
+                return LayerTreeVisitor.ReturnValue.CONTINUE;
+            },
+            visitLayerGroup: (layerGroup: LayerGroup) => {
+                layerGroup.visitChildren(layerTreeVisitor, LayerTreeNode.VisitOrder.TOP_DOWN);
+                return LayerTreeVisitor.ReturnValue.CONTINUE;
+            }
+        };
+        layerTree.visitChildren(layerTreeVisitor, LayerTreeNode.VisitOrder.TOP_DOWN);
+        return elevationLayers.map(l=>({id: l.id, visible: l.visible}));
+    }
+
+    static restoreElevationLayers(layerTree: LayerTree, layerStates: ElevationLayerState[], forceTo?: boolean ) {
+        if (!layerTree || !layerStates || !Array.isArray(layerStates)) {
+            return;
+        }
+
+        for (const state of layerStates) {
+            // 2. Guard against missing IDs in the state object
+            if (!state.id) continue;
+
+            // 3. findLayerById can return null if the layer was removed or ID changed
+            const layer = layerTree.findLayerById(state.id);
+
+            if (layer) {
+                if (typeof forceTo === "undefined") {
+                    layer.visible = !!state.visible; // Ensure boolean cast
+                } else {
+                    layer.visible = forceTo;
+                }
+            } else {
+                console.warn(`[LuciadRIA] Could not restore visibility: Layer with ID "${state.id}" not found.`);
+            }
         }
     }
 }

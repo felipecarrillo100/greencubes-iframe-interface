@@ -1,14 +1,22 @@
-import {BuilderLayerType, LayerConfig, LayerTreeConfig, PainterAvailable} from "./LayerBuilderInterfaces";
+import {BuilderLayerType, LayerConfig, LayerTreeConfig, PainterAvailable} from "../factories/LayerBuilderInterfaces";
 
 const children: LayerConfig[] = [
     {
         "type": BuilderLayerType.GROUP,
-        "layerOptions": { "label": "Mapbox Basemap", id:"shared", shared: true },
+        "layerOptions": { "label": "Mapbox Basemap", shared: true },
         "children": [
             {
                 "type": BuilderLayerType.MAPBOX, // TMS usually maps to WMTS in RIA for many configs
                 "modelOptions": {},
                 "layerOptions": { "label": "Mapbox Basemap" }
+            },
+            {
+                "type": BuilderLayerType.ELEVATION,
+                "modelOptions": {
+                    url: "https://sampleservices.luciad.com/lts",
+                    coverageId: "world_elevation_6714a770-860b-4878-90c9-ab386a4bae0f",
+                },
+                "layerOptions": { "label": "Elevation Layer" },
             },
         ]
     },
@@ -46,7 +54,7 @@ const children: LayerConfig[] = [
                     "selectable": true,
                     "hoverable": true,
                     painterName: PainterAvailable.Experience,
-                    id:"USA-STATES",
+                    id: "USA-STATES",
                 }
             },
             {

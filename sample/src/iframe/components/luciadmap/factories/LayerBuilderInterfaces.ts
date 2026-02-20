@@ -1,5 +1,5 @@
 import {
-    AzureMapsModelOptions,
+    AzureMapsModelOptions, FusionTileSetModelOption,
     GeoJSONModelOptions,
     HSPCModelOptions,
     OGC3DModelOptions, TMSOptions,
@@ -16,6 +16,7 @@ import {FeatureLayerOptions, LayerGroupOptions} from "./LayerFactory";
 export enum BuilderLayerType {
     GROUP = "GROUP",
     AZURE = "AZURE",
+    ELEVATION = "ELEVATION",
     GOOGLE  = "GOOGLE",
     MAPBOX = "MAPBOX",
     WMS = "WMS",
@@ -29,6 +30,7 @@ export enum BuilderLayerType {
 // Discriminated Union for Type Safety
 export type LayerConfig =
     | { type: BuilderLayerType.GROUP; layerOptions: LayerGroupOptions; children: LayerConfig[] }
+    | { type: BuilderLayerType.ELEVATION; modelOptions: FusionTileSetModelOption; layerOptions?: RasterTileSetLayerConstructorOptions }
     | { type: BuilderLayerType.AZURE; modelOptions: AzureMapsModelOptions; layerOptions?: RasterTileSetLayerConstructorOptions }
     | { type: BuilderLayerType.GOOGLE; modelOptions: GoogleMapsTileSetModelCreateOptions; layerOptions?: RasterTileSetLayerConstructorOptions }
     | { type: BuilderLayerType.MAPBOX; modelOptions: TMSOptions; layerOptions?: RasterTileSetLayerConstructorOptions }

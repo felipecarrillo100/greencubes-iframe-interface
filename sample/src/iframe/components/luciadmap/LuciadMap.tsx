@@ -7,29 +7,26 @@ import {getReference} from "@luciad/ria/reference/ReferenceProvider.js";
 import {ViewToolIBar} from "../buttons/ViewToolIBar";
 import {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 import type {Feature, FeatureId} from "@luciad/ria/model/feature/Feature.js";
-import {DefaultController} from "@luciad/ria/view/controller/DefaultController.js";
-import {NavigationKeysMode} from "ria-toolbox/libs/scene-navigation/KeyNavigationSupport";
-import {NavigationGizmo} from "ria-toolbox/libs/scene-navigation/NavigationGizmo";
-import {NavigationType} from "ria-toolbox/libs/scene-navigation/GestureUtil";
-import {createBounds} from "@luciad/ria/shape/ShapeFactory.js";
-
-import ROTATION_GLB from "ria-toolbox/libs/scene-navigation/gizmo/gizmo_circles.glb";
-import PAN_GLB from "ria-toolbox/libs/scene-navigation/gizmo/gizmo_arrows.glb";
-import SCROLL_GLB from "ria-toolbox/libs/scene-navigation/gizmo/gizmo_octhedron.glb";
-import {SceneNavigationController} from "ria-toolbox/libs/scene-navigation/SceneNavigationController";
 import {MapNavigatorAnimationOptions} from "@luciad/ria/view/MapNavigator";
 import {LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
 import {listenFromParent, MapModeType, type ParentToIframeMessage, sendToParent} from "../../../../../src";
-import {LayerBuilder} from "./factories/LayerBuilder";
+import {ElevationLayerState, LayerBuilder} from "./factories/LayerBuilder";
 import {CoordinateReference} from "@luciad/ria/reference/CoordinateReference";
 import {InitialMapSetup} from "./factories/LayerBuilderInterfaces";
 import {Handle} from "@luciad/ria/util/Evented";
+import {LayerUtils, restrictBounds2D} from "./utils/LayerUtils";
 
 const WebMercator = "EPSG:3857";
 const WORLD3D = "EPSG:4978";
-const DefaultCoordinateReference = getReference(WebMercator);
+const World2DReference = getReference(WebMercator);
 const World3DReference = getReference(WORLD3D);
 
+const DefaultCoordinateReference = World3DReference;
+
+
+const easeInOutCubic = (n: number): number => {
+    return n < 0.5 ? 4 * n * n * n : 1 - Math.pow(-2 * n + 2, 3) / 2;
+};
 
 interface Props {
     onMapReady?:(m:WebGLMap|null)=>void;
@@ -74,6 +71,7 @@ function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer,
 export const LuciadMap: React.FC<Props> = (props: Props) => {
     const [reference, setReference] = useState<CoordinateReference>(DefaultCoordinateReference);
     const selectionChangeHandle = useRef<Handle|null>(null);
+    const layerStates = useRef<ElevationLayerState[]>([]);
 
     useEffect(() => {
         // Subscribe to messages from parent
@@ -116,13 +114,31 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
 
     useEffect(() => {
         if (mapRef.current) {
+            if (is3DReference(mapRef.current.reference)) {
+                layerStates.current = LayerBuilder.saveElevationLayers(mapRef.current.layerTree);
+            }
+            const mapState = mapRef.current.saveState();
+            const boundsArray = mapRef.current.getMapBounds();
             mapRef.current.reference = reference;
-            notifyProjectionsChange(reference)
+
+            if (mapRef.current) {
+                if (is3DReference(reference)) {
+                    LayerBuilder.restoreElevationLayers(mapRef.current.layerTree, layerStates.current, true);
+                    mapRef.current.restoreState(mapState);
+                    mapRef.current.mapNavigator.fit({bounds: boundsArray[0], fitMargin: "0", animate: {  duration: 1000, ease: easeInOutCubic}});
+                }
+            }
+
+            notifyProjectionsChange(reference);
         }
     }, [reference]);
 
+    const is3DReference = (reference: CoordinateReference) => {
+        return (reference.identifier.toUpperCase() === "EPSG:4978")
+    }
+
     const notifyProjectionsChange = (reference: CoordinateReference) => {
-        const mode: MapModeType = (reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
+        const mode: MapModeType = is3DReference(reference) ? "3D" : "2D"
         sendToParent({
             type: "ProjectionChanged",
             data: {mode},
@@ -164,7 +180,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
 
     const setProjection = (options: { mode?: MapModeType}) => {
         if (options.mode==="2D") {
-            setReference(DefaultCoordinateReference)
+            setReference(World2DReference)
         } else {
             setReference(World3DReference)
         }
@@ -181,7 +197,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                     const boundsLayer = mapRef.current?.layerTree.findLayerById(options.settings.boundsFeatureLayerID);
                     if (boundsLayer instanceof FeatureLayer) {
                         if (mapRef.current.reference.equals(World3DReference)) {
-                            restrictBounds3D(mapRef.current, boundsLayer);
+                          //  restrictBounds3D(mapRef.current, boundsLayer);
                         } else {
                             restrictBounds2D(mapRef.current, boundsLayer);
                         }
@@ -209,7 +225,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         if (options.mode) {
             setProjection(options);
         }
-        const newMode = options.mode ? options.mode : (reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
+        const newMode = options.mode ? options.mode : is3DReference(reference) ? "3D" : "2D"
         const result = LayerBuilder.setTargetGroup(mapRef.current.layerTree, options.targetGroupId);
         // Send notification to parent
         if (result) {
@@ -236,16 +252,9 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     const zoomToFeatures= (options:{ featureIds: FeatureId[], animate?: boolean | MapNavigatorAnimationOptions | undefined})=> {
         if (activeLayer.current && mapRef.current) {
             const features = activeLayer.current.workingSet.get();
-            const matches = features.filter(f => options.featureIds.includes(f.id));
-            if (matches.length>0) {
-                const bounds = matches[0].shape?.bounds?.copy();
-                if (bounds) {
-                    for (let i=1; i<matches.length; ++i) {
-                        const b =matches[i].shape?.bounds;
-                        if (b) bounds.setTo3DUnion(b);
-                    }
-                    if (bounds) mapRef.current.mapNavigator.fit({bounds, animate: options.animate})
-                }
+            const bounds = LayerUtils.detectFeaturesBounds(features, options);
+            if (bounds) {
+                mapRef.current.mapNavigator.fit({bounds, animate: options.animate});
             }
         }
     }
@@ -290,90 +299,4 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
             <ViewToolIBar mapRef={mapRef} layerRef={activeLayer}/>
         </div>
     )
-}
-
-function restrictBounds3D(map: WebGLMap | null, layer: FeatureLayer) {
-    if (!map) return;
-    if (!layer.bounds) return;
-
-    const {limitBounds, targetBounds} = calculateBounds(layer, "3D");
-
-
-    map.mapNavigator.fit({bounds: targetBounds, animate: false});
-
-    // Declare the gizmos to use for the different navigation types.
-    const gizmos = {
-        [NavigationType.ROTATION]: new NavigationGizmo(ROTATION_GLB),
-        [NavigationType.PAN]: new NavigationGizmo(PAN_GLB),
-        [NavigationType.ZOOM]: new NavigationGizmo(SCROLL_GLB, {sizeInPixels: 40})
-    };
-    // Create a controller with varying options.
-    const navigateController = new SceneNavigationController(gizmos, limitBounds, {
-        navigationMode: NavigationKeysMode.TANGENT_FORWARD, // navigate along camera paths
-        defaultSpeed: 8, // ~28km/h
-        allowZoomOnClick: true, // clicking on a spot zooms in on to that location by a set fraction
-        useZoomAnimations: false, // don't use smooth animations when zooming or out
-        fasterMultiplier: 2, // go two times as fast when shift is pressed
-        slowerMultiplier: 0.5, // go only half as fast when space is pressed
-        swapPanRotateButtons: true
-    });
-
-    map.defaultController = new DefaultController({navigateController});
-}
-
-function restrictBounds2D(map: WebGLMap | null, layer: FeatureLayer) {
-    if (!map) return;
-    if (!layer.bounds) return;
-
-    const {limitBounds, targetBounds} = calculateBounds(layer, "2D");
-
-    map.mapNavigator.fit({bounds: targetBounds, animate: false});
-
-    map.mapNavigator.constraints = {
-        limitBounds: {
-            bounds: limitBounds,
-        }
-    };
-}
-
-function calculateBounds(layer: FeatureLayer, mode?: MapModeType) {
-    const currentMode = mode ? mode: "2D";
-    const valueOnMode = (value: number)=> {
-        return currentMode === "2D" ? 0 : value;
-    }
-
-    // @ts-ignore
-    let limitBounds = layer.bounds.copy();
-    // @ts-ignore
-    let targetBounds = layer.bounds.copy();
-    const limitsScale = 9;
-    const targetScale = 4;
-    if (limitBounds.depth === 0) {
-        limitBounds = createBounds(limitBounds.reference, [
-            limitBounds.x - (limitsScale - 1) * limitBounds.width / 2, limitBounds.width * limitsScale,
-            limitBounds.y - (limitsScale - 1) * limitBounds.height / 2, limitBounds.height * limitsScale,
-            valueOnMode(-100), valueOnMode(60000)
-        ])
-        targetBounds = createBounds(targetBounds.reference, [
-            targetBounds.x - (targetScale - 1) * targetBounds.width / 2, targetBounds.width * targetScale,
-            targetBounds.y - (targetScale - 1) * targetBounds.height / 2, targetBounds.height * targetScale,
-            valueOnMode(-100), valueOnMode(60000)
-        ]);
-    } else {
-        limitBounds = createBounds(limitBounds.reference, [
-            limitBounds.x - (limitsScale - 1) * limitBounds.width / 2, limitBounds.width * limitsScale,
-            limitBounds.y - (limitsScale - 1) * limitBounds.height / 2, limitBounds.height * limitsScale,
-            valueOnMode(limitBounds.z - ((limitsScale*2) - 1) * limitBounds.depth / 2),
-            valueOnMode(limitBounds.depth * limitsScale *2)
-        ]);
-        targetBounds = createBounds(targetBounds.reference, [
-            targetBounds.x - (targetScale - 1) * targetBounds.width / 2, targetBounds.width * targetScale,
-            targetBounds.y - (targetScale - 1) * targetBounds.height / 2, targetBounds.height * targetScale,
-            // targetBounds.z - ((targetScale*2) - 1) * targetBounds.depth / 2, targetBounds.depth * targetScale *2
-            valueOnMode(targetBounds.z + targetBounds.depth / 3 - (targetBounds.depth * targetScale * 2) / 2),
-            valueOnMode(targetBounds.depth * targetScale * 2)
-        ]);
-    }
-
-    return {limitBounds, targetBounds}
 }

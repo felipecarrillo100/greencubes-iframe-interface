@@ -9,6 +9,7 @@ import {Point} from "@luciad/ria/shape/Point.js";
 import type {LabelCanvas} from "@luciad/ria/view/style/LabelCanvas.js";
 import type {ShapeStyle} from "@luciad/ria/view/style/ShapeStyle.js";
 import type {UrlIconStyle} from "@luciad/ria/view/style/IconStyle.js";
+import {DrapeTarget} from "@luciad/ria/view/style/DrapeTarget";
 
 const labelStyleCss = `"
   display: inline-block;
@@ -73,6 +74,7 @@ export class BasicIconPainter extends FeaturePainter {
                 width: this.width,
                 height: this.height,
                 zOrder: this.zOrder,
+                drapeTarget: DrapeTarget.NOT_DRAPED
             };
 
             // Apply modulation color based on state

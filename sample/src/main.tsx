@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/client";
 import {sendToIframe, listenFromIframes, IframeToParentMessage, MapModeType} from "../../src";
 // import {TestData} from "./iframe/components/luciadmap/factories/TestData";
 import "./main.css"
-import {TestData2} from "./iframe/components/luciadmap/factories/TestData2";
+import {TestData2} from "./iframe/components/luciadmap/sampledata/TestData2";
 import {EventLogger} from "./EventLogger";
 import {JsonViewer} from "./JsonViewer";
 import {InitialMapSetup} from "./iframe/components/luciadmap/factories/LayerBuilderInterfaces";
@@ -12,7 +12,7 @@ import {InitialMapSetup} from "./iframe/components/luciadmap/factories/LayerBuil
 const SiteSettings:InitialMapSetup = {
     children: TestData2.children,
     mode: "2D",
-    targetGroupId: "group_1",
+    targetGroupId: "group_2",
     targetFeatureLayerID: "USA-STATES",
     boundsFeatureLayerID: "USA-STATES",
 }

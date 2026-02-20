@@ -1,7 +1,7 @@
 import * as React from "react";
 import { LuciadMap } from "./components/luciadmap/LuciadMap";
 import { Attribution } from "./components/attribution/Attribution";
-import {useEffect, useRef, useState} from "react";
+import { useRef, useState} from "react";
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type {Feature} from "@luciad/ria/model/feature/Feature.js";
@@ -22,16 +22,6 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [map, setMap] = useState<WebGLMap|null>(null);
-
-    useEffect(() => {
-        const mode: MapModeType = (map?.reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
-        sendToParent({
-            type: "MapReady",
-            data: {
-                mode
-            }
-        });
-    }, [map]);
 
     const onShowTime = (o: {status: boolean, errorMessage?:string, targetLayerId?: string}) => {
         if (o.status) {
@@ -95,6 +85,19 @@ const App: React.FC = () => {
         consoleOnDebugMode(`Selected triggered! [${features.map(f => f.id).join(", ")}]`);
     }
 
+    const onMapReady = (m: WebGLMap|null)=>{
+        if (m) {
+            const mode: MapModeType = (m.reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
+            sendToParent({
+                type: "MapReady",
+                data: {
+                    mode
+                }
+            });
+            setMap(m);
+        }
+    }
+
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
@@ -112,7 +115,7 @@ const App: React.FC = () => {
                 <div className="AppContent" ref={contentRef} style={{ opacity: 0 }}>
                     <LuciadMap onShowTime={onShowTime} geometrySelected={onGeometrySelected} geometryClicked={onGeometryClicked}
                                layerTreeChange={layerTreeChange}
-                               onMapReady={(m)=>setMap(m)}
+                               onMapReady={(m)=>onMapReady(m)}
                     />
                     <Attribution map={map} />
                 </div>

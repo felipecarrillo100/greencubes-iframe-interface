@@ -26,6 +26,7 @@ import {
     AzureMapsTileSetModelCreateOptions,
     createAzureMapsTileSetModel
 } from "@luciad/ria/model/tileset/AzureMapsTileSetModel";
+import {FusionTileSetModel, FusionTileSetModelCreateOptions} from "@luciad/ria/model/tileset/FusionTileSetModel";
 
 // Factory-specific option interfaces that bundle the URL/ID with the settings
 export interface WMTSModelOptions extends WMTSTileSetModelCreateOptions {
@@ -71,10 +72,25 @@ export interface TMSOptions {
     url?: string;
 }
 
+export interface FusionTileSetModelOption extends FusionTileSetModelCreateOptions {
+    url?: string;
+    coverageId?: string;
+}
+
 const GoogleLogoUrl = "./images/google.png";
 const AzureLogoUrl = "./images/azure.svg";
 
 export class ModelFactory {
+
+    static async createElevationModel(options: FusionTileSetModelOption): Promise<FusionTileSetModel> {
+        const defaults = {
+            url: "https://sampleservices.luciad.com/lts",
+            coverageId: "world_elevation_6714a770-860b-4878-90c9-ab386a4bae0f",
+            ...options
+        }
+        const { url, coverageId, ...rest } = defaults;
+        return FusionTileSetModel.createFromURL(url, coverageId, rest);
+    }
 
     static async createGoogleMapsModel(options?: GoogleMapsTileSetModelCreateOptions):  Promise<GoogleMapsTileSetModel> {
         const apiKey = import.meta.env.VITE_GOOGLE_KEY;

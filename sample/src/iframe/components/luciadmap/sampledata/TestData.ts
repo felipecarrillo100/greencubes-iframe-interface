@@ -1,4 +1,4 @@
-import {BuilderLayerType, LayerConfig, LayerTreeConfig} from "./LayerBuilderInterfaces";
+import {BuilderLayerType, LayerConfig, LayerTreeConfig} from "../factories/LayerBuilderInterfaces";
 
 const children: LayerConfig[] = [
     {

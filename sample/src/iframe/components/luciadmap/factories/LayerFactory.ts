@@ -15,6 +15,7 @@ import {GoogleMapsTileSetModel} from "@luciad/ria/model/tileset/GoogleMapsTileSe
 import {AzureMapsTileSetModel} from "@luciad/ria/model/tileset/AzureMapsTileSetModel";
 import {PainterFactory} from "./PainterFactory";
 import {PainterAvailable} from "./LayerBuilderInterfaces";
+import {FusionTileSetModel} from "@luciad/ria/model/tileset/FusionTileSetModel";
 
 export interface LayerGroupOptions extends LayerConstructorOptions {
     shared?: boolean;
@@ -29,6 +30,12 @@ export interface FeatureLayerOptions extends FeatureLayerConstructorOptions {
 }
 
 export class LayerFactory {
+    /**
+     * Creates a RasterTileSetLayer for an Elevation Layer.
+     */
+    static async createElevationLayer(model: FusionTileSetModel, options?: RasterTileSetLayerConstructorOptions): Promise<RasterTileSetLayer> {
+        return new RasterTileSetLayer(model, options);
+    }
 
     /**
      * Creates a RasterTileSetLayer for a WMTS Layer.

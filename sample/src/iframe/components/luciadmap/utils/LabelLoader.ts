@@ -1,10 +1,10 @@
 import {MemoryStore} from "@luciad/ria/model/store/MemoryStore.js";
 import {FeatureModel} from "@luciad/ria/model/feature/FeatureModel.js";
-import {BasicIconPainter} from "./BasicIconPainter.ts";
 import {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 import {Feature} from "@luciad/ria/model/feature/Feature.js";
 import {createPoint} from "@luciad/ria/shape/ShapeFactory.js";
 import {getReference} from "@luciad/ria/reference/ReferenceProvider.js";
+import {BasicIconPainter} from "./BasicIconPainter";
 
 const defaultProjection = "LUCIAD:XYZ";
 const reference = getReference(defaultProjection);
