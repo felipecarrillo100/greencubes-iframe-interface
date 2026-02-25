@@ -11,10 +11,12 @@
     "strict": true,
     "skipLibCheck": true,
     "removeComments": false,
-
     // Add these for unused variable/parameter warnings
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

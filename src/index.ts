@@ -1,10 +1,19 @@
 // src/index.ts
-import type { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import { JSONFeature, JSONFeatureId } from "./JSONFeature";
 import { InitialMapSetup, MapModeType } from "./interfaces";
 
 export * from "./interfaces";
 export * from "./JSONFeature";
+
+/**
+ * Serializable version of Luciad MapNavigatorAnimationOptions
+ */
+export interface MapNavigatorAnimationOptions {
+    /** Duration in milliseconds */
+    duration?: number;
+    /** Whether to stop existing animations */
+    stop?: boolean;
+}
 
 /**
  * Base message type for communication between parent and iframe.
@@ -163,7 +172,7 @@ export function listenFromParent(handler: (msg: ParentToIframeMessage) => void) 
 // ==============================
 
 /**
- * Logs a message to the console if `?debug=true` is present in the URL.
+ * Logs a message to the console if `? debug = true` is present in the URL.
  *
  * @param message Message string to log.
  */
