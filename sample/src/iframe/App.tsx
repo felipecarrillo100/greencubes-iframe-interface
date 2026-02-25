@@ -10,6 +10,8 @@ import {consoleOnDebugMode, MapModeType, sendToParent} from "../../../src";
 import './App.scss';
 import {Shape} from "@luciad/ria/shape/Shape.js";
 import {WebGLMap} from "@luciad/ria/view/WebGLMap.js";
+import {JSONFeature, JSONFeatureId} from "../../../src/JSONFeature";
+import {GeoJSONUtils} from "./utils/GeoJSONUtils";
 
 const theme = createTheme({
     palette: {
@@ -52,10 +54,10 @@ const App: React.FC = () => {
             sendToParent({
                 type: "ClickedItem",
                 data: { feature: {
-                        id: feature.id,
+                        id: feature.id as JSONFeatureId,
                         properties: feature.properties,
-                        shape: {...feature.shape, type: feature.shape?.type} as Shape,
-                    } as Feature},
+                        geometry: GeoJSONUtils.shapeToGeometry(feature.shape)
+                    } as JSONFeature},
             });
             consoleOnDebugMode(`Click triggered! ${feature.id}`);
         }
@@ -78,8 +80,8 @@ const App: React.FC = () => {
                 features: features.map(f => ({
                     id: f.id,
                     properties: f.properties,
-                    shape: {...f.shape, type: f.shape?.type},
-                })) as Feature[],
+                    geometry: GeoJSONUtils.shapeToGeometry(f.shape),
+                })) as JSONFeature[],
             },
         });
         consoleOnDebugMode(`Selected triggered! [${features.map(f => f.id).join(", ")}]`);

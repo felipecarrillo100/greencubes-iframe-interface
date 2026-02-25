@@ -8,6 +8,7 @@ import {TestData2} from "./iframe/components/luciadmap/sampledata/TestData2";
 import {EventLogger} from "./EventLogger";
 import {JsonViewer} from "./JsonViewer";
 import {InitialMapSetup} from "./iframe/components/luciadmap/factories/LayerBuilderInterfaces";
+import {JSONFeatureId} from "../../src/JSONFeature";
 
 const SiteSettings:InitialMapSetup = {
     children: TestData2.children,
@@ -48,9 +49,9 @@ const MainApp: React.FC = () => {
                         setCurrentMapMode(msg.data.mode);
                         break;
                     case "ClickedItem":
-                        addLog(`Feature-Clicked: ${msg.data.feature.id} ${JSON.stringify(msg.data.feature.properties)}`);
+                        addLog(`Feature-Clicked: ${msg.data.feature} ${JSON.stringify(msg.data.feature.properties)}`);
                         if (iframeRef.current){
-                            sendToIframe(iframeRef.current, {type: "ZoomToSelection", data: {animate: true, featureIds: [msg.data.feature.id]}})
+                            sendToIframe(iframeRef.current, {type: "ZoomToSelection", data: {animate: true, featureIds: [msg.data.feature.id as JSONFeatureId]}})
                         }
                         break;
                     case "SelectedItems":

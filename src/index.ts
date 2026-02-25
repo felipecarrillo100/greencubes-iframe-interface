@@ -1,7 +1,7 @@
 // src/lib/iframeMessages.ts
-import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import {InitialMapSetup} from "../sample/src/iframe/components/luciadmap/factories/LayerBuilderInterfaces";
+import {JSONFeature, JSONFeatureId} from "./JSONFeature";
 
 /**
  * Base message type for communication between parent and iframe.
@@ -30,8 +30,8 @@ export type IframeToParentMessage =
     | BaseMessage<"ProjectionChanged", { mode: MapModeType}>
     | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType}>
     | BaseMessage<"LayerTreeChange", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }>
-    | BaseMessage<"ClickedItem", { feature: Feature }>
-    | BaseMessage<"SelectedItems", { features: Feature[] }>
+    | BaseMessage<"ClickedItem", { feature: JSONFeature }>
+    | BaseMessage<"SelectedItems", { features: JSONFeature[] }>
     | BaseMessage<"MapReady", { mode: MapModeType}>
     | BaseMessage<"Error", { message: string }>;
 
@@ -46,10 +46,10 @@ export type ParentToIframeMessage =
     | BaseMessage<"SetInitialMapSetup", { settings: InitialMapSetup }>
     | BaseMessage<"SetLayerGroup", { targetGroupId: string, mode?: MapModeType}>
     | BaseMessage<"SetProjection", { mode: MapModeType }>
-    | BaseMessage<"HighlightFeature", { featureId: FeatureId }>
-    | BaseMessage<"SelectFeatures", { featureIds: FeatureId[] }>
+    | BaseMessage<"HighlightFeature", { featureId: JSONFeatureId }>
+    | BaseMessage<"SelectFeatures", { featureIds: JSONFeatureId[] }>
     | BaseMessage<"RemoveLayer", { layerId?: string }>
-    | BaseMessage<"ZoomToSelection", { featureIds: FeatureId[]; animate?: boolean | MapNavigatorAnimationOptions }>
+    | BaseMessage<"ZoomToSelection", { featureIds: JSONFeatureId[]; animate?: boolean | MapNavigatorAnimationOptions }>
     | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>;
 
 // ==============================
