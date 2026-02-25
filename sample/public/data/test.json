@@ -8368,6 +8368,32 @@
         "EXP_ID": "EXPERIENCE_ID_12",
         "Description": null
       }
+    },
+    {
+      "type": "Feature",
+      "id": "Minas",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.887217,
+          -19.970019,
+          0.0
+        ]
+      },
+      "properties": {
+        "Name": "Minas - Acadas",
+        "stroke": null,
+        "fillColor": null,
+        "fillColorOnMouseOver": null,
+        "stroke-width": null,
+        "strokeOpacity": null,
+        "fillColorOpacity": null,
+        "fillcolorMouseOveropacity": null,
+        "status": null,
+        "Plot": "Horto Alegria",
+        "EXP_ID": "EXPERIENCE_ID_12",
+        "Description": null
+      }
     }
   ]
 }
