@@ -1,7 +1,10 @@
-// src/lib/iframeMessages.ts
-import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
-import {InitialMapSetup} from "../sample/src/iframe/components/luciadmap/factories/LayerBuilderInterfaces";
-import {JSONFeature, JSONFeatureId} from "./JSONFeature";
+// src/index.ts
+import type { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
+import { JSONFeature, JSONFeatureId } from "./JSONFeature";
+import { InitialMapSetup, MapModeType } from "./interfaces";
+
+export * from "./interfaces";
+export * from "./JSONFeature";
 
 /**
  * Base message type for communication between parent and iframe.
@@ -18,7 +21,6 @@ export interface BaseMessage<T extends string, D> {
     frameId?: string;
 }
 
-export type MapModeType = "2D" | "3D";
 // ==============================
 // Messages sent from Iframe → Parent
 // ==============================
@@ -27,12 +29,12 @@ export type MapModeType = "2D" | "3D";
  * Messages that can be sent from an iframe to the parent window.
  */
 export type IframeToParentMessage =
-    | BaseMessage<"ProjectionChanged", { mode: MapModeType}>
-    | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType}>
+    | BaseMessage<"ProjectionChanged", { mode: MapModeType }>
+    | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType }>
     | BaseMessage<"LayerTreeChange", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }>
     | BaseMessage<"ClickedItem", { feature: JSONFeature }>
     | BaseMessage<"SelectedItems", { features: JSONFeature[] }>
-    | BaseMessage<"MapReady", { mode: MapModeType}>
+    | BaseMessage<"MapReady", { mode: MapModeType }>
     | BaseMessage<"Error", { message: string }>;
 
 // ==============================
@@ -44,7 +46,7 @@ export type IframeToParentMessage =
  */
 export type ParentToIframeMessage =
     | BaseMessage<"SetInitialMapSetup", { settings: InitialMapSetup }>
-    | BaseMessage<"SetLayerGroup", { targetGroupId: string, mode?: MapModeType}>
+    | BaseMessage<"SetLayerGroup", { targetGroupId: string, mode?: MapModeType }>
     | BaseMessage<"SetProjection", { mode: MapModeType }>
     | BaseMessage<"HighlightFeature", { featureId: JSONFeatureId }>
     | BaseMessage<"SelectFeatures", { featureIds: JSONFeatureId[] }>

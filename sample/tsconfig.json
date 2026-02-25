@@ -8,10 +8,17 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-
-    // Add these for unused variable/parameter warnings
+    "baseUrl": ".",
+    "paths": {
+      "@library/*": [
+        "../src/*"
+      ]
+    },
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../src"
+  ]
 }

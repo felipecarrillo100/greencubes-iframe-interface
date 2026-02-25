@@ -14,19 +14,19 @@ export default defineConfig({
     ],
 
     server: {
-        port: 5173, // you can change this if needed
-        // Open sample.html automatically in browser
+        port: 5173,
         open: "/sample.html",
+        fs: {
+            allow: ["..", "."],
+        },
     },
 
     build: {
         outDir: "dist",
         emptyOutDir: true,
         rollupOptions: {
-            // Multiple HTML entry points
             input: {
                 main: path.resolve(__dirname, "sample.html"),
-                iframe: path.resolve(__dirname, "index.html"),
             },
         },
     },

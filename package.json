@@ -1,10 +1,23 @@
 {
   "name": "greencubes-iframe-interface",
   "version": "0.0.4",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc",
+    "sample": "npm run dev --prefix sample",
+    "iframe": "npm run dev --prefix iframe-app"
   },
   "files": [
     "dist"
@@ -13,9 +26,9 @@
     "access": "public"
   },
   "devDependencies": {
+    "@luciad/ria": ">=2024.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
     "typescript": "^5.6.0"
-  },
-  "dependencies": {
-    "@luciad/ria": ">=2024.1"
   }
 }
