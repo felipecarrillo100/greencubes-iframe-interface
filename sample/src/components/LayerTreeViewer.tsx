@@ -127,7 +127,7 @@ export const LayerTreeViewer: React.FC<LayerTreeViewerProps> = ({ layerTree, onL
 
 const TreeNode: React.FC<TreeNodeProps> = ({ node, onLayerVisibilityChange, onLayerFit, onDeleteLayer }) => {
     const [isExpanded, setIsExpanded] = useState(true);
-    const isGroup = node.layerType === JSONLayerType.LayerGroup;
+    const isGroup = node.className === JSONLayerType.LayerGroup;
 
     const handleFitToLayer = (e: React.MouseEvent) => {
         e.stopPropagation();

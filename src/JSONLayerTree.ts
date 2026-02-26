@@ -13,7 +13,7 @@ export interface JSONLayer {
     label: string;
     visible: boolean;
     type: string;
-    layerType: JSONLayerType;
+    className: JSONLayerType;
 }
 
 export interface JSONLayerGroup {
@@ -21,7 +21,7 @@ export interface JSONLayerGroup {
     label: string;
     visible: boolean;
     children: (JSONLayer | JSONLayerGroup)[];
-    layerType: JSONLayerType.LayerGroup;
+    className: JSONLayerType.LayerGroup;
 }
 
 export interface JSONLayerTree {

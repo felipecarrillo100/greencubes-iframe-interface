@@ -17,7 +17,7 @@ export class JSONLayerTreeUtils {
                     id: child.id,
                     label: child.label,
                     visible: child.visible,
-                    layerType: JSONLayerTreeUtils.getLayerType(child),
+                    className: JSONLayerTreeUtils.getLayerClassName(child),
                     children: JSONLayerTreeUtils.fromLayerTree(child)
                 } as JSONLayerGroup;
             } else {
@@ -27,13 +27,13 @@ export class JSONLayerTreeUtils {
                     label: layer.label,
                     visible: layer.visible,
                     type: layer.type,
-                    layerType: JSONLayerTreeUtils.getLayerType(layer)
+                    className: JSONLayerTreeUtils.getLayerClassName(layer)
                 } as JSONLayer;
             }
         });
     }
 
-    private static getLayerType(layer: Layer | LayerGroup): JSONLayerType {
+    private static getLayerClassName(layer: Layer | LayerGroup): JSONLayerType {
         if (layer instanceof LayerGroup) {
             return JSONLayerType.LayerGroup;
         } else if (layer instanceof FeatureLayer) {
