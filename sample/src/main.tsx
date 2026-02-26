@@ -23,7 +23,6 @@ const MainApp: React.FC = () => {
     const [currentMapMode, setCurrentMapMode] = useState("2D");
     const [logs, setLogs] = useState<string[]>([]);
     const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
-    const layer = useRef(null as string | undefined | null);
 
     const [layerTree, setLayerTree] = useState<JSONLayerTree>({children:[]});
 
@@ -69,14 +68,6 @@ const MainApp: React.FC = () => {
         return () => stop();
     }, []);
 
-    const handleClick = () => {
-        if (iframeRef.current) {
-            sendToIframe(iframeRef.current, {
-                type: "ZoomToLayer",
-                data: { animate: false },
-            });
-        }
-    };
 
     const handleProjection = (projection: "2D" | "3D") => {
         if (iframeRef.current) {
@@ -96,20 +87,45 @@ const MainApp: React.FC = () => {
         }
     }
 
-    const handleRemove = () => {
-        if (iframeRef.current && layer.current) {
+    const onDeleteLayer= (id:string) => {
+            if (iframeRef.current) {
+                console.log("!!!!!!!!")
+                sendToIframe(iframeRef.current, {
+                    type: "RemoveLayer",
+                    data: {
+                        layerId: id,
+                    },
+                });
+            }
+        };
+
+    const onZoomToLayer= (id: string)=>{
+        if (iframeRef.current) {
             sendToIframe(iframeRef.current, {
-                type: "RemoveLayer",
-                data: { layerId: layer.current }
+                type: "ZoomToLayer",
+                data: {
+                    layerId: id,
+                    animate: {duration: 500}
+                },
             });
         }
-    };
+    }
+
+    const onLayerVisibilityChange = (id: string, visible: boolean)=>{
+        if (iframeRef.current) {
+            sendToIframe(iframeRef.current, {
+                type: "SetLayerVisibility",
+                data: {
+                    layerId: id,
+                    visible
+                },
+            });
+        }
+    }
 
     return (
         <div style={{ padding: 10 }}>
             <h2>Main (Parent) App {currentMapMode}</h2>
-            <button onClick={handleClick}>Send ZoomToLayer → Iframe</button>
-            <button onClick={handleRemove}>Send RemoveLayer → Iframe</button>
             <button onClick={() => handleProjection("2D")}>Send Map to 2D → Iframe</button>
             <button onClick={() => handleProjection("3D")}>Send Map to 3D → Iframe</button>
             <iframe
@@ -119,8 +135,8 @@ const MainApp: React.FC = () => {
                 style={{ width: "100%", height: 480, border: "1px solid black" }}
             />
             <div className="group-selection-holder">
-                <button onClick={() => handleGroupChange({ targetGroupId: "group_1", mode: "2D" })}>Group 1 → Iframe</button>
-                <button onClick={() => handleGroupChange({ targetGroupId: "group_2", mode: "3D" })}>Group 2 → Iframe</button>
+                <button onClick={() => handleGroupChange({ targetGroupId: "group_1", mode: "3D" })}>Group 1 → Iframe</button>
+                <button onClick={() => handleGroupChange({ targetGroupId: "group_2", mode: "2D" })}>Group 2 → Iframe</button>
                 <button onClick={() => handleGroupChange({ targetGroupId: "group_3", mode: "2D" })}>Group 3 → Iframe</button>
                 <button onClick={() => handleGroupChange({ targetGroupId: "group_4", mode: "3D" })}>Group 4 → Iframe</button>
             </div>
@@ -130,17 +146,11 @@ const MainApp: React.FC = () => {
                     <EventLogger logs={logs} />
                 </div>
                 <div style={{ width: "30%", display: "inline-block" }}>
-                    <LayerTreeViewer layerTree={layerTree} onLayerVisibilityChange={(id, visible)=>{
-                        if (iframeRef.current) {
-                            sendToIframe(iframeRef.current, {
-                                type: "SetLayerVisibility",
-                                data: {
-                                    layerId: id,
-                                    visible
-                                },
-                            });
-                        }
-                    }}/>
+                    <LayerTreeViewer layerTree={layerTree}
+                                     onLayerVisibilityChange={onLayerVisibilityChange}
+                                     onLayerFit={onZoomToLayer}
+                                     onDeleteLayer={onDeleteLayer}
+                    />
                 </div>
             </div>
 

@@ -178,7 +178,6 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
 
     const setLayerVisibility =  (options: { layerId?: string, visible: boolean }) => {
         if (mapRef.current) {
-            console.log("!!!!!!!!!!!!!!!!!!!!!!!!")
             if (options.layerId) {
                 const layer = mapRef.current.layerTree.findLayerTreeNodeById(options.layerId);
                 layer.visible = options.visible;
@@ -186,13 +185,13 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     }
 
-    const zoomToLayer = (iOptions: { layerid?: string, animate?: boolean | MapNavigatorAnimationOptions | undefined }) => {
+    const zoomToLayer = (iOptions: { layerId?: string, animate?: boolean | MapNavigatorAnimationOptions | undefined }) => {
         if (mapRef.current) {
             const options = iOptions ? iOptions : { animate: true };
-            if (!options.layerid) {
+            if (!options.layerId) {
                 if (activeLayer.current && activeLayer.current.bounds) mapRef.current.mapNavigator.fit({ bounds: activeLayer.current.bounds, animate: options.animate })
             } else {
-                const layer = mapRef.current.layerTree.findLayerById(options.layerid) as FeatureLayer;
+                const layer = mapRef.current.layerTree.findLayerById(options.layerId) as FeatureLayer;
                 if (layer && layer.bounds) mapRef.current.mapNavigator.fit({ bounds: layer.bounds, animate: options.animate })
             }
         }
@@ -261,7 +260,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         if (!mapRef.current) return;
 
         const layerToRemove = options.layerId
-            ? (mapRef.current.layerTree.findLayerById(options.layerId) as FeatureLayer)
+            ? mapRef.current.layerTree.findLayerTreeNodeById(options.layerId)
             : activeLayer.current;
 
         if (layerToRemove) {
