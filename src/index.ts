@@ -1,6 +1,6 @@
 // src/index.ts
 import { JSONFeature, JSONFeatureId } from "./JSONFeature";
-import { InitialMapSetup, MapModeType } from "./interfaces";
+import { InitialMapSetup, MapModeType, AddLayerOptions } from "./interfaces";
 import { JSONLayerTree } from "./JSONLayerTree";
 
 export * from "./interfaces";
@@ -14,6 +14,7 @@ export interface MapNavigatorAnimationOptions {
     /** Duration in milliseconds */
     duration?: number;
 }
+
 
 /**
  * Base message type for communication between parent and iframe.
@@ -64,7 +65,8 @@ export type ParentToIframeMessage =
     | BaseMessage<"SelectFeatures", { featureIds: JSONFeatureId[] }>
     | BaseMessage<"RemoveLayer", { layerId?: string }>
     | BaseMessage<"ZoomToSelection", { featureIds: JSONFeatureId[]; animate?: boolean | MapNavigatorAnimationOptions }>
-    | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>;
+    | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>
+    | BaseMessage<"AddLayer", { options: AddLayerOptions }>;
 
 // ==============================
 // Type maps for strict autocomplete

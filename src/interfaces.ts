@@ -96,6 +96,18 @@ export interface FusionTileSetModelOption {
     coverageId?: string;
 }
 
+export interface GoogleMapsTileSetModelOptions {
+    mapType?: "roadmap" | "satellite" | "terrain"
+    language?: string
+    region?: string
+    imageFormat?: "jpeg" | "png"
+    scale?: "scaleFactor1x" | "scaleFactor2x" | "scaleFactor4x"
+    highDpi?: boolean
+    layerTypes?: ("layerRoadmap" | "layerStreetview" | "layerTraffic")[]
+    styles?: string
+    overlay?: boolean
+}
+
 export interface LayerGroupOptions {
     id?: string;
     label?: string;
@@ -133,7 +145,7 @@ export type LayerConfig =
     | { type: BuilderLayerType.GROUP; layerOptions: LayerGroupOptions; children: LayerConfig[] }
     | { type: BuilderLayerType.ELEVATION; modelOptions: FusionTileSetModelOption; layerOptions?: RasterLayerOptions }
     | { type: BuilderLayerType.AZURE; modelOptions: AzureMapsModelOptions; layerOptions?: RasterLayerOptions }
-    | { type: BuilderLayerType.GOOGLE; modelOptions: { mapType?: string }; layerOptions?: RasterLayerOptions }
+    | { type: BuilderLayerType.GOOGLE; modelOptions: GoogleMapsTileSetModelOptions; layerOptions?: RasterLayerOptions }
     | { type: BuilderLayerType.MAPBOX; modelOptions: TMSOptions; layerOptions?: RasterLayerOptions }
     | { type: BuilderLayerType.WMS; modelOptions: WMSTileSetModelOptions; layerOptions?: RasterLayerOptions }
     | { type: BuilderLayerType.WMTS; modelOptions: WMTSModelOptions; layerOptions?: RasterLayerOptions }
@@ -141,6 +153,14 @@ export type LayerConfig =
     | { type: BuilderLayerType.GEOJSON; modelOptions: GeoJSONModelOptions; layerOptions?: FeatureLayerOptions }
     | { type: BuilderLayerType.OGC3DTiles; modelOptions: OGC3DModelOptions; layerOptions?: TileSet3DLayerOptions }
     | { type: BuilderLayerType.HSPC; modelOptions: HSPCModelOptions; layerOptions?: TileSet3DLayerOptions };
+
+export type AddLayerPosition = "top" | "bottom" | "above" | "below" | "parent" | "parent-bottom";
+
+export interface AddLayerOptions {
+    layerConfig: LayerConfig;
+    position?: AddLayerPosition;
+    referenceLayerId?: string;
+}
 
 export interface LayerTreeConfig {
     children: LayerConfig[];

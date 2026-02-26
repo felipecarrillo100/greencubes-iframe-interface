@@ -6,7 +6,7 @@ import {
 import { WFSFeatureStore } from "@luciad/ria/model/store/WFSFeatureStore";
 import { OGC3DTilesModel } from "@luciad/ria/model/tileset/OGC3DTilesModel";
 import { HSPCTilesModel } from "@luciad/ria/model/tileset/HSPCTilesModel";
-import { WMTSTileSetModel } from "@luciad/ria/model/tileset/WMTSTileSetModel";
+import {WMTSTileSetModel, WMTSTileSetModelCreateOptions} from "@luciad/ria/model/tileset/WMTSTileSetModel";
 import { FeatureModel } from "@luciad/ria/model/feature/FeatureModel.js";
 import { getReference } from "@luciad/ria/reference/ReferenceProvider.js";
 import { GeoJsonCodec } from "@luciad/ria/model/codec/GeoJsonCodec.js";
@@ -102,7 +102,7 @@ export class ModelFactory {
      */
     static async createWMTSModel(options: WMTSModelOptions): Promise<WMTSTileSetModel> {
         const { url, layer, style, ...rest } = options;
-        return WMTSTileSetModel.createFromURL(url, { layer, style }, rest);
+        return WMTSTileSetModel.createFromURL(url, { layer, style }, rest as WMTSTileSetModelCreateOptions);
     }
 
     /**
@@ -112,7 +112,7 @@ export class ModelFactory {
     static async createWMSModel(options: WMSTileSetModelOptions): Promise<WMSModel> {
         // 1. Destructure 'crs' out and collect everything else in 'rest'
         const { crs, ...rest } = options;
-        const o: WMSTileSetModelConstructorOptions = { ...rest };
+        const o: WMSTileSetModelConstructorOptions = { ...rest } as WMSTileSetModelConstructorOptions;
         o.reference = getReference(crs ? crs : "EPSG:3857");
         return new WMSTileSetModel(o);
     }

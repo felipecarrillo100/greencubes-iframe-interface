@@ -54,7 +54,7 @@ const children: LayerConfig[] = [
                     "selectable": true,
                     "hoverable": true,
                     painterName: PainterAvailable.Experience,
-                    id: "USA-STATES",
+                    id: "MY-BOUNDS",
                 }
             },
             {
@@ -66,6 +66,7 @@ const children: LayerConfig[] = [
                 "layerOptions": {
                     "label": "States",
                     "selectable": true, "hoverable": true,
+                    id: "USA-STATES",
                 },
             },
             {

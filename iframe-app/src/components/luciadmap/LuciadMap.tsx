@@ -9,8 +9,8 @@ import { FeatureLayer } from "@luciad/ria/view/feature/FeatureLayer.js";
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import {listenFromParent, sendToParent} from "@library/index";
-import type {MapModeType, ParentToIframeMessage, JSONLayerTree, LayerTreeChangedEventType } from "@library/index";
+import { listenFromParent, sendToParent } from "@library/index";
+import type { MapModeType, ParentToIframeMessage, JSONLayerTree, LayerTreeChangedEventType, AddLayerOptions } from "@library/index";
 import type { InitialMapSetup } from "@library/interfaces";
 import { ElevationLayerState, LayerBuilder } from "./factories/LayerBuilder";
 import { CoordinateReference } from "@luciad/ria/reference/CoordinateReference";
@@ -18,7 +18,7 @@ import { CoordinateReference } from "@luciad/ria/reference/CoordinateReference";
 import { Handle } from "@luciad/ria/util/Evented";
 import { LayerUtils, restrictBounds2D } from "./utils/LayerUtils";
 import { JSONLayerTreeUtils } from "../../utils/JSONLayerTreeUtils";
-import {createVisibilityListeners, removeVisibilityListeners, VisibilityManager} from "./managers/VisibilityManager";
+import { createVisibilityListeners, removeVisibilityListeners, VisibilityManager } from "./managers/VisibilityManager";
 
 
 const WebMercator = "EPSG:3857";
@@ -112,6 +112,9 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                 case "SetLayerGroup":
                     setLayerGroup(msg.data);
                     break;
+                case "AddLayer":
+                    addLayer(msg.data.options);
+                    break;
                 default:
                     // @ts-ignore
                     console.warn("Unhandled message type:", msg.type);
@@ -179,7 +182,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     }
 
-    const setLayerVisibility =  (options: { layerId?: string, visible: boolean }) => {
+    const setLayerVisibility = (options: { layerId?: string, visible: boolean }) => {
         if (mapRef.current) {
             if (options.layerId) {
                 const layer = mapRef.current.layerTree.findLayerTreeNodeById(options.layerId);
@@ -271,6 +274,12 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     };
 
+    const addLayer = (options: AddLayerOptions) => {
+        if (mapRef.current) {
+            LayerBuilder.addLayer(mapRef.current.layerTree, options);
+        }
+    }
+
     const zoomToFeatures = (options: { featureIds: FeatureId[], animate?: boolean | MapNavigatorAnimationOptions | undefined }) => {
         if (activeLayer.current && mapRef.current) {
             const features = activeLayer.current.workingSet.get();
@@ -303,7 +312,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         if (mapRef.current) {
             sendToParent({
                 type: "LayerTreeVisibilityChanged",
-                data: { layerTree: { children: JSONLayerTreeUtils.fromLayerTree(mapRef.current?.layerTree) }},
+                data: { layerTree: { children: JSONLayerTreeUtils.fromLayerTree(mapRef.current?.layerTree) } },
             });
         }
     }

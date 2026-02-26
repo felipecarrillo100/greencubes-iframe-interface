@@ -9,6 +9,7 @@ import { LayerTreeVisitor } from "@luciad/ria/view/LayerTreeVisitor";
 import { Layer } from "@luciad/ria/view/Layer.js";
 import { RasterTileSetLayer } from "@luciad/ria/view/tileset/RasterTileSetLayer.js";
 import { FusionTileSetModel } from "@luciad/ria/model/tileset/FusionTileSetModel";
+import { AddLayerOptions } from "../../../../../src";
 
 
 /**
@@ -140,6 +141,45 @@ export class LayerBuilder {
             }
         } catch (e) {
             throw e;
+        }
+    }
+
+    public static async addLayer(layerTree: LayerTree, options: AddLayerOptions): Promise<LayerTreeNode | null> {
+        const { layerConfig, position = "top", referenceLayerId } = options;
+
+        try {
+            const newNode = await this.processNode(layerConfig);
+            if (!newNode) return null;
+
+            let parent: LayerTree | LayerGroup = layerTree;
+            let finalPosition: "top" | "bottom" | "above" | "below" = (position === "parent") ? "top" : (  (position === "parent-bottom") ? "bottom": position);
+            let referenceNode: LayerTreeNode | undefined;
+
+            if (referenceLayerId) {
+                const found = layerTree.findLayerTreeNodeById(referenceLayerId);
+                if (found) {
+                    if (position === "above" || position === "below") {
+                        parent = found.parent || layerTree;
+                        referenceNode = found;
+                    } else if (position === "parent" || position === "parent-bottom") {
+                        if (found instanceof LayerGroup) {
+                            parent = found;
+                        } else {
+                            console.warn(`[LayerBuilder] Target node ${referenceLayerId} is not a group. Adding to root top.`);
+                            finalPosition = "top";
+                        }
+                    }
+                } else {
+                    console.warn(`[LayerBuilder] Reference layer/group ${referenceLayerId} not found. Adding to root top.`);
+                    finalPosition = "top";
+                }
+            }
+
+            parent.addChild(newNode, finalPosition as any, referenceNode);
+            return newNode;
+        } catch (error) {
+            console.error(`[LayerBuilder] Error adding layer:`, error);
+            return null;
         }
     }
 
