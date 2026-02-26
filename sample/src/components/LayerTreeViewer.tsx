@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
     JSONLayerTree,
     JSONLayerTreeNode,
-    JSONLayerType,
+    JSONLayerClass,
     JSONLayerGroup
 } from "../../../src/JSONLayerTree";
 
@@ -127,7 +127,7 @@ export const LayerTreeViewer: React.FC<LayerTreeViewerProps> = ({ layerTree, onL
 
 const TreeNode: React.FC<TreeNodeProps> = ({ node, onLayerVisibilityChange, onLayerFit, onDeleteLayer }) => {
     const [isExpanded, setIsExpanded] = useState(true);
-    const isGroup = node.className === JSONLayerType.LayerGroup;
+    const isGroup = node.className === JSONLayerClass.LayerGroup;
 
     const handleFitToLayer = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -159,6 +159,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onLayerVisibilityChange, onLa
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2c2e33'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                title={node.className}
             >
                 {/* Expander Spacer/Icon */}
                 <div style={{ width: '20px', display: 'flex', alignItems: 'center' }}>

@@ -1,5 +1,5 @@
 import { LayerTree } from "@luciad/ria/view/LayerTree";
-import { JSONLayer, JSONLayerGroup, JSONLayerTreeNode, JSONLayerType } from "../../../src/JSONLayerTree";
+import { JSONLayer, JSONLayerGroup, JSONLayerTreeNode, JSONLayerClass } from "../../../src/JSONLayerTree";
 import { LayerGroup } from "@luciad/ria/view/LayerGroup";
 import { Layer } from "@luciad/ria/view/Layer";
 import { LayerTreeNode } from "@luciad/ria/view/LayerTreeNode";
@@ -33,20 +33,20 @@ export class JSONLayerTreeUtils {
         });
     }
 
-    private static getLayerClassName(layer: Layer | LayerGroup): JSONLayerType {
+    private static getLayerClassName(layer: Layer | LayerGroup): JSONLayerClass {
         if (layer instanceof LayerGroup) {
-            return JSONLayerType.LayerGroup;
+            return JSONLayerClass.LayerGroup;
         } else if (layer instanceof FeatureLayer) {
-            return JSONLayerType.FeatureLayer;
+            return JSONLayerClass.FeatureLayer;
         } else if (layer instanceof WMSTileSetLayer) {
-            return JSONLayerType.WMSTileSetLayer;
+            return JSONLayerClass.WMSTileSetLayer;
         } else if (layer instanceof RasterTileSetLayer) {
-            return JSONLayerType.RasterTileSetLayer;
+            return JSONLayerClass.RasterTileSetLayer;
         } else if (layer instanceof TileSet3DLayer) {
-            return JSONLayerType.TileSet3DLayer;
+            return JSONLayerClass.TileSet3DLayer;
         } else if (layer instanceof GridLayer) {
-            return JSONLayerType.GridLayer;
+            return JSONLayerClass.GridLayer;
         }
-        return JSONLayerType.Unknown;
+        return JSONLayerClass.Unknown;
     }
 }

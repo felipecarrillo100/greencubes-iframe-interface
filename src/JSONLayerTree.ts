@@ -1,4 +1,4 @@
-export enum JSONLayerType {
+export enum JSONLayerClass {
     LayerGroup = "LayerGroup",
     FeatureLayer = "FeatureLayer",
     RasterTileSetLayer = "RasterTileSetLayer",
@@ -8,12 +8,18 @@ export enum JSONLayerType {
     Unknown = "Unknown"
 }
 
+export enum JSONLayerType {
+    BASE = "BASE",
+    STATIC = "STATIC",
+    DYNAMIC = "DYNAMIC",
+}
+
 export interface JSONLayer {
     id: string;
     label: string;
     visible: boolean;
-    type: string;
-    className: JSONLayerType;
+    type: JSONLayerType;
+    className: JSONLayerClass;
 }
 
 export interface JSONLayerGroup {
@@ -21,7 +27,7 @@ export interface JSONLayerGroup {
     label: string;
     visible: boolean;
     children: (JSONLayer | JSONLayerGroup)[];
-    className: JSONLayerType.LayerGroup;
+    className: JSONLayerClass.LayerGroup;
 }
 
 export interface JSONLayerTree {
