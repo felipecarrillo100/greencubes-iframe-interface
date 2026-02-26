@@ -4,8 +4,8 @@ import {
     JSONLayerTreeNode,
     JSONLayerClass,
     JSONLayerGroup
-} from "../../../src/JSONLayerTree";
-import {sendToIframe} from "../../../src/";
+} from "@library/JSONLayerTree";
+import {sendToIframe} from "@library/index";
 
 // --- Styled SVG Components for a clean look ---
 const ChevronIcon = ({expanded}: { expanded: boolean }) => (

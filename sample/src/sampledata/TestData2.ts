@@ -1,4 +1,4 @@
-import { BuilderLayerType, LayerConfig, LayerTreeConfig, PainterAvailable } from "../../../src";
+import { BuilderLayerType, LayerConfig, LayerTreeConfig, PainterAvailable } from "@library/index";
 
 const children: LayerConfig[] = [
     {

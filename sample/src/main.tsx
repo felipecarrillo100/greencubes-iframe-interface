@@ -1,14 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
-import {
-    sendToIframe, listenFromIframes, IframeToParentMessage, MapModeType, InitialMapSetup, JSONFeatureId,
+import { sendToIframe, listenFromIframes } from "@library/index";
+import type {
+    IframeToParentMessage,
+    MapModeType,
+    InitialMapSetup,
+    JSONFeatureId,
     JSONLayerTree
-} from "../../src";
-import "./main.css"
+} from "@library/index";
+
 import { TestData2 } from "./sampledata/TestData2";
 import { EventLogger } from "./components/EventLogger";
 import { JsonViewer } from "./components/JsonViewer";
 import {LayerTreeViewer} from "./components/LayerTreeViewer";
+import "./main.css"
 
 const SiteSettings: InitialMapSetup = {
     children: TestData2.children,

@@ -33,4 +33,10 @@ export default defineConfig({
 
     // Optional: treat files in /public as static assets automatically
     publicDir: path.resolve(__dirname, "public"),
+    resolve: {
+        alias: {
+            // This maps the @library prefix to the actual absolute path
+            '@library': path.resolve(__dirname, '../src'),
+        },
+    },
 });
