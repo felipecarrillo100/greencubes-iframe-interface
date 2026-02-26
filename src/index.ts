@@ -13,8 +13,6 @@ export * from "./JSONLayerTree";
 export interface MapNavigatorAnimationOptions {
     /** Duration in milliseconds */
     duration?: number;
-    /** Whether to stop existing animations */
-    stop?: boolean;
 }
 
 /**
@@ -36,13 +34,14 @@ export interface BaseMessage<T extends string, D> {
 // Messages sent from Iframe → Parent
 // ==============================
 
+export type LayerTreeChangedEventType = "NodeAdded" | "NodeRemoved" | "NodeMoved";
 /**
  * Messages that can be sent from an iframe to the parent window.
  */
 export type IframeToParentMessage =
     | BaseMessage<"ProjectionChanged", { mode: MapModeType }>
     | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType }>
-    | BaseMessage<"LayerTreeChanged", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved", layerTree: JSONLayerTree }>
+    | BaseMessage<"LayerTreeChanged", { layerId: string; type: LayerTreeChangedEventType, layerTree: JSONLayerTree }>
     | BaseMessage<"LayerTreeVisibilityChanged", { layerTree: JSONLayerTree }>
     | BaseMessage<"ClickedItem", { feature: JSONFeature }>
     | BaseMessage<"SelectedItems", { features: JSONFeature[] }>

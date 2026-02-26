@@ -9,7 +9,12 @@ import { FeatureLayer } from "@luciad/ria/view/feature/FeatureLayer.js";
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import { listenFromParent, MapModeType, type ParentToIframeMessage, sendToParent, JSONLayerTree } from "../../../../src";
+import {
+    listenFromParent, sendToParent,
+    type MapModeType, type ParentToIframeMessage,
+    type JSONLayerTree,
+    type LayerTreeChangedEventType
+} from "../../../../src";
 import { ElevationLayerState, LayerBuilder } from "./factories/LayerBuilder";
 import { CoordinateReference } from "@luciad/ria/reference/CoordinateReference";
 import { InitialMapSetup } from "../../../../src/interfaces";
@@ -42,9 +47,9 @@ interface Props {
     }) => void;
 }
 
-function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }) => void) {
+function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: LayerTreeChangedEventType }) => void) {
     // This code will be called every time the selection change in the map
-    const action = (actionType: "NodeAdded" | "NodeRemoved" | "NodeMoved") => (layerTreeNodeChange: LayerTreeNodeChangeEvent) => {
+    const action = (actionType: LayerTreeChangedEventType) => (layerTreeNodeChange: LayerTreeNodeChangeEvent) => {
         // Find a layer by ID in the map layerTree
         if (typeof callback === "function") {
             callback({ layerTreeNodeChange, type: actionType });
