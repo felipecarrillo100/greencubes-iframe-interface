@@ -87,42 +87,6 @@ const MainApp: React.FC = () => {
         }
     }
 
-    const onDeleteLayer= (id:string) => {
-            if (iframeRef.current) {
-                console.log("!!!!!!!!")
-                sendToIframe(iframeRef.current, {
-                    type: "RemoveLayer",
-                    data: {
-                        layerId: id,
-                    },
-                });
-            }
-        };
-
-    const onZoomToLayer= (id: string)=>{
-        if (iframeRef.current) {
-            sendToIframe(iframeRef.current, {
-                type: "ZoomToLayer",
-                data: {
-                    layerId: id,
-                    animate: {duration: 500}
-                },
-            });
-        }
-    }
-
-    const onLayerVisibilityChange = (id: string, visible: boolean)=>{
-        if (iframeRef.current) {
-            sendToIframe(iframeRef.current, {
-                type: "SetLayerVisibility",
-                data: {
-                    layerId: id,
-                    visible
-                },
-            });
-        }
-    }
-
     return (
         <div style={{ padding: 10 }}>
             <h2>Main (Parent) App {currentMapMode}</h2>
@@ -146,11 +110,7 @@ const MainApp: React.FC = () => {
                     <EventLogger logs={logs} />
                 </div>
                 <div style={{ width: "30%", display: "inline-block" }}>
-                    <LayerTreeViewer layerTree={layerTree}
-                                     onLayerVisibilityChange={onLayerVisibilityChange}
-                                     onLayerFit={onZoomToLayer}
-                                     onDeleteLayer={onDeleteLayer}
-                    />
+                    <LayerTreeViewer layerTree={layerTree} iframe={iframeRef} />
                 </div>
             </div>
 
