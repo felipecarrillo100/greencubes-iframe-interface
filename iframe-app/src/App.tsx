@@ -6,7 +6,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type { Feature } from "@luciad/ria/model/feature/Feature.js";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import { consoleOnDebugMode, sendToParent } from "@library/index";
+import { consoleOnDebugMode, sendToParent, IframeToParentMsg } from "@library/index";
 import type { MapModeType, JSONLayerTree } from "@library/index";
 import type { JSONFeature, JSONFeatureId } from "@library/JSONFeature";
 import './App.scss';
@@ -41,24 +41,24 @@ const App: React.FC = () => {
             const message = o.errorMessage ? o.errorMessage : "Failed to load the data. Verify the data url";
             setError(message);
             sendToParent({
-                type: "Error",
+                type: IframeToParentMsg.Error,
                 data: { message }
             });
             consoleOnDebugMode(`Error triggered! ${message}`);
         }
     };
 
-    const onGeometryClicked = (feature: Feature) => {
+    const onGeometryClicked = (feature: Feature, layerId: string) => {
         // Detect if running inside an iframe
         if (feature.shape) {
             sendToParent({
-                type: "ClickedItem",
+                type: IframeToParentMsg.ClickedItem,
                 data: {
                     feature: {
                         id: feature.id as JSONFeatureId,
                         properties: feature.properties,
-                        geometry: GeoJSONUtils.shapeToGeometry(feature.shape)
-                    } as JSONFeature
+                        geometry: GeoJSONUtils.shapeToGeometry(feature.shape),
+                    } as JSONFeature, layerId
                 },
             });
             consoleOnDebugMode(`Click triggered! ${feature.id}`);
@@ -68,7 +68,7 @@ const App: React.FC = () => {
     const layerTreeChange = (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved", layerTree: JSONLayerTree }) => {
         // Detect if running inside an iframe
         sendToParent({
-            type: "LayerTreeChanged",
+            type: IframeToParentMsg.LayerTreeChanged,
             data: {
                 layerId: o.layerTreeNodeChange.node.id,
                 type: o.type,
@@ -78,16 +78,16 @@ const App: React.FC = () => {
         consoleOnDebugMode(`Layer Change! ${o.layerTreeNodeChange.node.id} ${o.type}`);
     }
 
-    const onGeometrySelected = (features: Feature[]) => {
+    const onGeometrySelected = (features: Feature[], layerId: string) => {
         // Detect if running inside an iframe
         sendToParent({
-            type: "SelectedItems",
+            type: IframeToParentMsg.SelectedItems,
             data: {
                 features: features.map(f => ({
                     id: f.id,
                     properties: f.properties,
                     geometry: GeoJSONUtils.shapeToGeometry(f.shape),
-                })) as JSONFeature[],
+                })) as JSONFeature[], layerId
             },
         });
         consoleOnDebugMode(`Selected triggered! [${features.map(f => f.id).join(", ")}]`);
@@ -97,7 +97,7 @@ const App: React.FC = () => {
         if (m) {
             const mode: MapModeType = (m.reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
             sendToParent({
-                type: "MapReady",
+                type: IframeToParentMsg.MapReady,
                 data: {
                     mode
                 }

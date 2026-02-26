@@ -19,10 +19,10 @@ export interface MapNavigatorAnimationOptions {
 /**
  * Base message type for communication between parent and iframe.
  *
- * @template T The message type string.
+ * @template T The message type.
  * @template D The shape of the data payload.
  */
-export interface BaseMessage<T extends string, D> {
+export interface BaseMessage<T, D> {
     /** Discriminator for the type of message */
     type: T;
     /** Data payload of the message */
@@ -36,47 +36,78 @@ export interface BaseMessage<T extends string, D> {
 // ==============================
 
 export type LayerTreeChangedEventType = "NodeAdded" | "NodeRemoved" | "NodeMoved";
+
+/**
+ * Message types that can be sent from an iframe to the parent window.
+ */
+export enum IframeToParentMsg {
+    ProjectionChanged = "ProjectionChanged",
+    TargetGroupChanged = "TargetGroupChanged",
+    LayerTreeChanged = "LayerTreeChanged",
+    LayerTreeVisibilityChanged = "LayerTreeVisibilityChanged",
+    ClickedItem = "ClickedItem",
+    SelectedItems = "SelectedItems",
+    MapReady = "MapReady",
+    Error = "Error",
+}
+
 /**
  * Messages that can be sent from an iframe to the parent window.
  */
 export type IframeToParentMessage =
-    | BaseMessage<"ProjectionChanged", { mode: MapModeType }>
-    | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType }>
-    | BaseMessage<"LayerTreeChanged", { layerId: string; type: LayerTreeChangedEventType, layerTree: JSONLayerTree }>
-    | BaseMessage<"LayerTreeVisibilityChanged", { layerTree: JSONLayerTree }>
-    | BaseMessage<"ClickedItem", { feature: JSONFeature }>
-    | BaseMessage<"SelectedItems", { features: JSONFeature[] }>
-    | BaseMessage<"MapReady", { mode: MapModeType }>
-    | BaseMessage<"Error", { message: string }>;
+    | BaseMessage<IframeToParentMsg.ProjectionChanged, { mode: MapModeType }>
+    | BaseMessage<IframeToParentMsg.TargetGroupChanged, { targetGroupId: string, mode: MapModeType }>
+    | BaseMessage<IframeToParentMsg.LayerTreeChanged, { layerId: string; type: LayerTreeChangedEventType, layerTree: JSONLayerTree }>
+    | BaseMessage<IframeToParentMsg.LayerTreeVisibilityChanged, { layerTree: JSONLayerTree }>
+    | BaseMessage<IframeToParentMsg.ClickedItem, { feature: JSONFeature, layerId: string }>
+    | BaseMessage<IframeToParentMsg.SelectedItems, { features: JSONFeature[], layerId: string }>
+    | BaseMessage<IframeToParentMsg.MapReady, { mode: MapModeType }>
+    | BaseMessage<IframeToParentMsg.Error, { message: string }>;
 
 // ==============================
 // Messages sent from Parent → Iframe
 // ==============================
 
 /**
+ * Message types that can be sent from the parent window to an iframe.
+ */
+export enum ParentToIframeMsg {
+    SetInitialMapSetup = "SetInitialMapSetup",
+    SetLayerGroup = "SetLayerGroup",
+    SetLayerVisibility = "SetLayerVisibility",
+    SetProjection = "SetProjection",
+    HighlightFeature = "HighlightFeature",
+    SelectFeatures = "SelectFeatures",
+    RemoveLayer = "RemoveLayer",
+    ZoomToSelection = "ZoomToSelection",
+    ZoomToLayer = "ZoomToLayer",
+    AddLayer = "AddLayer",
+}
+
+/**
  * Messages that can be sent from the parent window to an iframe.
  */
 export type ParentToIframeMessage =
-    | BaseMessage<"SetInitialMapSetup", { settings: InitialMapSetup }>
-    | BaseMessage<"SetLayerGroup", { targetGroupId: string, mode?: MapModeType }>
-    | BaseMessage<"SetLayerVisibility", { layerId: string, visible: boolean }>
-    | BaseMessage<"SetProjection", { mode: MapModeType }>
-    | BaseMessage<"HighlightFeature", { featureId: JSONFeatureId }>
-    | BaseMessage<"SelectFeatures", { featureIds: JSONFeatureId[] }>
-    | BaseMessage<"RemoveLayer", { layerId?: string }>
-    | BaseMessage<"ZoomToSelection", { featureIds: JSONFeatureId[]; animate?: boolean | MapNavigatorAnimationOptions }>
-    | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>
-    | BaseMessage<"AddLayer", { options: AddLayerOptions }>;
+    | BaseMessage<ParentToIframeMsg.SetInitialMapSetup, { settings: InitialMapSetup }>
+    | BaseMessage<ParentToIframeMsg.SetLayerGroup, { targetGroupId: string, mode?: MapModeType }>
+    | BaseMessage<ParentToIframeMsg.SetLayerVisibility, { layerId: string, visible: boolean }>
+    | BaseMessage<ParentToIframeMsg.SetProjection, { mode: MapModeType }>
+    | BaseMessage<ParentToIframeMsg.HighlightFeature, { featureId: JSONFeatureId, layerId?: string }>
+    | BaseMessage<ParentToIframeMsg.SelectFeatures, { featureIds: JSONFeatureId[], layerId?: string }>
+    | BaseMessage<ParentToIframeMsg.RemoveLayer, { layerId?: string }>
+    | BaseMessage<ParentToIframeMsg.ZoomToSelection, { featureIds: JSONFeatureId[]; animate?: boolean | MapNavigatorAnimationOptions, layerId?: string }>
+    | BaseMessage<ParentToIframeMsg.ZoomToLayer, { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>
+    | BaseMessage<ParentToIframeMsg.AddLayer, { options: AddLayerOptions }>;
 
 // ==============================
 // Type maps for strict autocomplete
 // ==============================
 
 /** Map of Iframe → Parent message types to their data payloads */
-type IframeToParentMap = { [M in IframeToParentMessage as M["type"]]: M["data"] };
+type IframeToParentMap = { [M in IframeToParentMessage as M["type"] & (string | number | symbol)]: M["data"] };
 
 /** Map of Parent → Iframe message types to their data payloads */
-type ParentToIframeMap = { [M in ParentToIframeMessage as M["type"]]: M["data"] };
+type ParentToIframeMap = { [M in ParentToIframeMessage as M["type"] & (string | number | symbol)]: M["data"] };
 
 // ==============================
 // Senders with strict types & autocomplete

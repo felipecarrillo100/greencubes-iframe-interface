@@ -9,7 +9,7 @@ import { FeatureLayer } from "@luciad/ria/view/feature/FeatureLayer.js";
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import { listenFromParent, sendToParent } from "@library/index";
+import { listenFromParent, sendToParent, ParentToIframeMsg, IframeToParentMsg } from "@library/index";
 import type { MapModeType, ParentToIframeMessage, JSONLayerTree, LayerTreeChangedEventType, AddLayerOptions } from "@library/index";
 import type { InitialMapSetup } from "@library/interfaces";
 import { ElevationLayerState, LayerBuilder } from "./factories/LayerBuilder";
@@ -36,8 +36,8 @@ const easeInOutCubic = (n: number): number => {
 interface Props {
     onMapReady?: (m: WebGLMap | null) => void;
     onShowTime?: (options: { status: boolean, errorMessage?: string, targetLayerId?: string }) => void;
-    geometrySelected?: (features: Feature[]) => void;
-    geometryClicked?: (feature: Feature) => void;
+    geometrySelected?: (features: Feature[], layerId: string) => void;
+    geometryClicked?: (feature: Feature, layerId: string) => void;
     layerTreeChange?: (o: {
         layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved",
         layerTree: JSONLayerTree
@@ -57,7 +57,7 @@ function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: { layerTreeNod
     map.layerTree.on("NodeMoved", action("NodeMoved"));
 }
 
-function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer, callback?: (features: Feature[]) => void): Handle {
+function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer, callback?: (features: Feature[], layerId: string) => void): Handle {
     // This code will be called every time the selection change in the map
     return map.on("SelectionChanged", () => {
         // Find a layer by ID in the map layerTree
@@ -68,10 +68,10 @@ function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer,
             if (selection[0].selected.length > 0) {
                 const features = selection[0].selected as Feature[];
                 // Assign the controller to the map to edit the selected feature
-                if (typeof callback === "function") callback(features);
+                if (typeof callback === "function") callback(features, featureLayer.id);
             }
         } else {
-            if (typeof callback === "function") callback([]);
+            if (typeof callback === "function") callback([], featureLayer.id);
         }
     });
 }
@@ -85,34 +85,34 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         // Subscribe to messages from parent
         const unsubscribe = listenFromParent((msg: ParentToIframeMessage) => {
             switch (msg.type) {
-                case "HighlightFeature":
+                case ParentToIframeMsg.HighlightFeature:
                     highlightFeature(msg.data);
                     break;
-                case "SelectFeatures":
+                case ParentToIframeMsg.SelectFeatures:
                     selectFeatures(msg.data);
                     break;
-                case "ZoomToSelection":
+                case ParentToIframeMsg.ZoomToSelection:
                     zoomToFeatures(msg.data);
                     break;
-                case "ZoomToLayer":
+                case ParentToIframeMsg.ZoomToLayer:
                     zoomToLayer(msg.data);
                     break;
-                case "RemoveLayer":
+                case ParentToIframeMsg.RemoveLayer:
                     removeLayer(msg.data);
                     break;
-                case "SetLayerVisibility":
+                case ParentToIframeMsg.SetLayerVisibility:
                     setLayerVisibility(msg.data);
                     break;
-                case "SetProjection":
+                case ParentToIframeMsg.SetProjection:
                     setProjection(msg.data);
                     break;
-                case "SetInitialMapSetup":
+                case ParentToIframeMsg.SetInitialMapSetup:
                     setInitialMapSetup(msg.data);
                     break;
-                case "SetLayerGroup":
+                case ParentToIframeMsg.SetLayerGroup:
                     setLayerGroup(msg.data);
                     break;
-                case "AddLayer":
+                case ParentToIframeMsg.AddLayer:
                     addLayer(msg.data.options);
                     break;
                 default:
@@ -154,7 +154,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     const notifyProjectionsChange = (reference: CoordinateReference) => {
         const mode: MapModeType = is3DReference(reference) ? "3D" : "2D"
         sendToParent({
-            type: "ProjectionChanged",
+            type: IframeToParentMsg.ProjectionChanged,
             data: { mode },
         });
     }
@@ -164,21 +164,25 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     const visibilityManager = useRef<VisibilityManager | null>(null)
     const activeLayer = useRef<FeatureLayer | null>(null);
 
-    const highlightFeature = (options: { featureId: FeatureId }) => {
+    const highlightFeature = (options: { featureId: FeatureId, layerId?: string }) => {
         if (activeLayer.current && mapRef.current) {
-            const features = activeLayer.current.workingSet.get();
+            const targetLayer = options.layerId ? mapRef.current.layerTree.findLayerById(options.layerId) as FeatureLayer : activeLayer.current;
+            if (!targetLayer || !targetLayer.workingSet) return;
+            const features = targetLayer.workingSet.get();
             const matches = features.filter(f => f.id === options.featureId);
             if (matches.length === 1)
-                mapRef.current.selectObjects([{ layer: activeLayer.current, objects: matches }]);
+                mapRef.current.selectObjects([{ layer: targetLayer, objects: matches }]);
         }
     }
 
-    const selectFeatures = (options: { featureIds: FeatureId[] }) => {
+    const selectFeatures = (options: { featureIds: FeatureId[], layerId?: string }) => {
         if (activeLayer.current && mapRef.current) {
-            const features = activeLayer.current.workingSet.get();
+            const targetLayer = options.layerId ? mapRef.current.layerTree.findLayerById(options.layerId) as FeatureLayer : activeLayer.current;
+            if (!targetLayer || !targetLayer.workingSet) return;
+            const features = targetLayer.workingSet.get();
             const matches = features.filter(f => options.featureIds.includes(f.id));
-            if (matches.length === 1)
-                mapRef.current.selectObjects([{ layer: activeLayer.current, objects: matches }]);
+            if (matches.length > 0)
+                mapRef.current.selectObjects([{ layer: targetLayer, objects: matches }]);
         }
     }
 
@@ -235,7 +239,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                             selectionChangeHandle.current.remove();
                             selectionChangeHandle.current = null;
                         }
-                        targetLayer.onClick = triggerOnClickAction;
+                        targetLayer.onClick = triggerOnClickAction(targetLayer.id);
                         activeLayer.current = targetLayer;
                         selectionChangeHandle.current = addListenerOnSelectionChange(mapRef.current, targetLayer, triggerOnSelectionChangeAction)
                     }
@@ -255,7 +259,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         // Send notification to parent
         if (result) {
             sendToParent({
-                type: "TargetGroupChanged",
+                type: IframeToParentMsg.TargetGroupChanged,
                 data: { targetGroupId: options.targetGroupId, mode: newMode },
             });
         }
@@ -280,9 +284,11 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     }
 
-    const zoomToFeatures = (options: { featureIds: FeatureId[], animate?: boolean | MapNavigatorAnimationOptions | undefined }) => {
-        if (activeLayer.current && mapRef.current) {
-            const features = activeLayer.current.workingSet.get();
+    const zoomToFeatures = (options: { featureIds: FeatureId[], animate?: boolean | MapNavigatorAnimationOptions | undefined, layerId?: string }) => {
+        if (mapRef.current) {
+            const targetLayer = options.layerId ? mapRef.current.layerTree.findLayerById(options.layerId) as FeatureLayer : activeLayer.current;
+            if (!targetLayer || !targetLayer.workingSet) return;
+            const features = targetLayer.workingSet.get();
             const bounds = LayerUtils.detectFeaturesBounds(features, options);
             if (bounds) {
                 mapRef.current.mapNavigator.fit({ bounds, animate: options.animate });
@@ -291,9 +297,9 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     }
 
 
-    const triggerOnSelectionChangeAction = (features: Feature[]) => {
+    const triggerOnSelectionChangeAction = (features: Feature[], layerId: string) => {
         if (typeof props.geometrySelected === "function") {
-            props.geometrySelected(features);
+            props.geometrySelected(features, layerId);
         }
     }
 
@@ -311,15 +317,15 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     const triggerOnLaterVisibilityChanged = () => {
         if (mapRef.current) {
             sendToParent({
-                type: "LayerTreeVisibilityChanged",
+                type: IframeToParentMsg.LayerTreeVisibilityChanged,
                 data: { layerTree: { children: JSONLayerTreeUtils.fromLayerTree(mapRef.current?.layerTree) } },
             });
         }
     }
 
-    const triggerOnClickAction = (feature: Feature) => {
+    const triggerOnClickAction = (layerId: string) => (feature: Feature) => {
         if (typeof props.geometryClicked === "function") {
-            props.geometryClicked(feature);
+            props.geometryClicked(feature, layerId);
             //    return true
         }
         return false;

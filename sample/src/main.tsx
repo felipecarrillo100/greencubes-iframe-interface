@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
-import { sendToIframe, listenFromIframes, BuilderLayerType } from "@library/index";
+import { sendToIframe, listenFromIframes, BuilderLayerType, ParentToIframeMsg, IframeToParentMsg } from "@library/index";
 import type {
     IframeToParentMessage,
     MapModeType,
@@ -38,35 +38,35 @@ const MainApp: React.FC = () => {
             (msg: IframeToParentMessage, sourceFrameId?: string) => {
                 console.log("Parent received:", msg, "from", sourceFrameId);
                 switch (msg.type) {
-                    case "MapReady":
+                    case IframeToParentMsg.MapReady:
                         addLog("Map is ready" + JSON.stringify(msg, null, 2));
                         iframeRef.current && sendToIframe(iframeRef.current, {
-                            type: "SetInitialMapSetup",
+                            type: ParentToIframeMsg.SetInitialMapSetup,
                             data: {
                                 settings: SiteSettings
                             },
                         });
                         break;
-                    case "LayerTreeChanged":
-                    case "LayerTreeVisibilityChanged":
+                    case IframeToParentMsg.LayerTreeChanged:
+                    case IframeToParentMsg.LayerTreeVisibilityChanged:
                         console.log("LayerTree changed", msg);
                         setLayerTree(msg.data.layerTree)
                         break;
-                    case "TargetGroupChanged":
+                    case IframeToParentMsg.TargetGroupChanged:
                         addLog("Target Group changed" + JSON.stringify(msg, null, 2));
                         break
-                    case "ProjectionChanged":
+                    case IframeToParentMsg.ProjectionChanged:
                         addLog("Projection changed" + JSON.stringify(msg, null, 2));
                         setCurrentMapMode(msg.data.mode);
                         break;
-                    case "ClickedItem":
-                        addLog(`Feature-Clicked: ${msg.data.feature} ${JSON.stringify(msg.data.feature.properties)}`);
+                    case IframeToParentMsg.ClickedItem:
+                        addLog(`Feature-Clicked: ${msg.data.layerId} / ${msg.data.feature.id} ${JSON.stringify(msg.data.feature.properties)}`);
                         if (iframeRef.current) {
-                            sendToIframe(iframeRef.current, { type: "ZoomToSelection", data: { animate: true, featureIds: [msg.data.feature.id as JSONFeatureId] } })
+                            sendToIframe(iframeRef.current, { type: ParentToIframeMsg.ZoomToSelection, data: { animate: true, featureIds: [msg.data.feature.id as JSONFeatureId] } })
                         }
                         break;
-                    case "SelectedItems":
-                        console.log(msg.data.features);
+                    case IframeToParentMsg.SelectedItems:
+                        console.log(msg.data);
                         break;
                 }
             }
@@ -78,7 +78,7 @@ const MainApp: React.FC = () => {
     const handleProjection = (projection: "2D" | "3D") => {
         if (iframeRef.current) {
             sendToIframe(iframeRef.current, {
-                type: "SetProjection",
+                type: ParentToIframeMsg.SetProjection,
                 data: { mode: projection },
             });
         }
@@ -87,7 +87,7 @@ const MainApp: React.FC = () => {
     const handleGroupChange = (options: { targetGroupId: string; mode?: MapModeType }) => {
         if (iframeRef.current) {
             sendToIframe(iframeRef.current, {
-                type: "SetLayerGroup",
+                type: ParentToIframeMsg.SetLayerGroup,
                 data: options
             });
         }
@@ -97,7 +97,7 @@ const MainApp: React.FC = () => {
     const handleAddTestLayer = (position: any, refId?: string) => {
         if (iframeRef.current) {
             sendToIframe(iframeRef.current, {
-                type: "AddLayer",
+                type: ParentToIframeMsg.AddLayer,
                 data: {
                     options: {
                         layerConfig: {
@@ -124,7 +124,7 @@ const MainApp: React.FC = () => {
     const handleAddTestGroup = () => {
         if (iframeRef.current) {
             sendToIframe(iframeRef.current, {
-                type: "AddLayer",
+                type: ParentToIframeMsg.AddLayer,
                 data: {
                     options: {
                         layerConfig: {
