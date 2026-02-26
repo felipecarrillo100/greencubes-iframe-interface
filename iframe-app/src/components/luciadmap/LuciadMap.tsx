@@ -316,6 +316,8 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     useEffect(() => {
         if (divRef.current) {
             mapRef.current = new WebGLMap(divRef.current, { reference });
+            if (mapRef.current.mapNavigator.constraints.above) mapRef.current.mapNavigator.constraints.above.minAltitude = 0.5;
+            mapRef.current.globeColor = "#15202d";
             addListenerLayerTreeChange(mapRef.current, triggerOnLayerTreeChange);
             console.log("Listener started")
             visibilityManager.current = createVisibilityListeners(mapRef.current.layerTree, triggerOnLaterVisibilityChanged)
