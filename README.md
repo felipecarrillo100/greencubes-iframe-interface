@@ -1,189 +1,179 @@
-# iframeMessages
+# 🟢 greencubes-iframe-interface
 
-A TypeScript library for **type-safe communication** between a parent window and one or one ore more iframes containing a basic LuciadRIA application.  
-Supports strict type-checking, autocomplete, and payload validation for all message types.
----
+> **The Bridge to LuciadRIA 2025.0**  
+> A premium, type-safe communication layer for seamless Iframe integration.
 
-## Features
+[![LuciadRIA 2025.0](https://img.shields.io/badge/LuciadRIA-2025.0-brightgreen.svg)](https://luciad.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-- Typed messages from **iframe → parent** and **parent → iframe**
-- Autocomplete and type safety for `type` and `data`
-- Utility functions for sending and listening to messages
-- Optional `frameId` support for multiple iframes
-- Debug logging via URL query parameter `?debug=true`
+Integrating LuciadRIA into your app shouldn't be a headache. **greencubes-iframe-interface** provides a robust, strictly-typed bridge that makes parent-to-iframe communication feel like a native function call.
 
 ---
 
-## Installation
+## 🗺️ LuciadRIA Integration, Simplified
 
-Assuming your project uses npm or yarn:
+Integrating LuciadRIA into your application shouldn't be a hurdle. **greencubes-iframe-interface** acts as a robust, strictly-typed bridge, transforming complex parent-to-iframe communication into seamless, native-feeling function calls.
+
+
+* **🛡️ End-to-End Type Safety**: Eliminate `any` from your vocabulary. Every message and payload is strictly validated at compile-time, catching errors before they hit the browser.
+* **⚡ Reactive & Performant**: Optimized for asynchronous command execution and instantaneous event propagation, ensuring the map remains fluid and responsive.
+* **🚀 Instant Bootstrap**: The "Handshake" logic is built-in. As soon as the iframe signals readiness, dispatch your initial configurations and layer sets immediately.
+* **📂 Logical Visibility Groups**: Simplify UI complexity. Manage layers in logical groups that behave like radio buttons—toggle entire map contexts with a single, clean message.
+* **🎯 Feature-Level Precision**: Built-in support for GeoJSON standards. Effortlessly handle clicking, selecting, and zooming to specific map features without manual coordinate math.
+* **🏗️ Declarative Layer Management**: Ditch the imperative boilerplate. Add, reorder, and manage complex layer trees using a single, intuitive JSON configuration.
+
+---
+
+## 🚀 Installation
 
 ```bash
 npm install greencubes-iframe-interface
-# or
-yarn add greencubes-iframe-interface
 ```
 
 ---
 
-## Types
+## 🛠️ Quick Start 
 
-### Base message
+Add a powerful map to your application in minutes.
 
-```ts
-interface BaseMessage<T extends string, D> {
-  type: T;
-  data: D;
-  frameId?: string;
-}
-```
+```tsx
+import React, { useEffect, useRef } from "react";
+import { sendToIframe, listenFromIframes, MapModeType } from "greencubes-iframe-interface";
 
-### Iframe → Parent messages
+const MyMapApp = () => {
+    const mapRef = useRef<HTMLIFrameElement>(null);
 
-```ts
-type IframeToParentMessage =
-  | BaseMessage<"LayerTreeChange", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }>
-  | BaseMessage<"ClickedItem", { feature: Feature }>
-  | BaseMessage<"SelectedItems", { features: Feature[] }>
-  | BaseMessage<"Ready", { targetLayerId?: string }>
-  | BaseMessage<"Error", { message: string }>;
-```
+    useEffect(() => {
+        // 🎧 Single listener at the top level
+        const stop = listenFromIframes({ mainMap: mapRef.current }, (msg) => {
+            switch (msg.type) {
+                case "MapReady":
+                    console.log("Map is ready in mode:", msg.data.mode);
+                    if (mapRef.current) {
+                        sendToIframe(mapRef.current, {
+                            type: "SetInitialMapSetup",
+                            // Assuming SiteSettings is imported/defined elsewhere
+                            data: { settings: SiteSettings }
+                        });
+                    }
+                    break;
 
-### Parent → Iframe messages
+                case "ClickedItem":
+                    console.info("Feature selected:", msg.data.feature.properties?.name);
+                    break;
+            }
+        });
 
-```ts
-type ParentToIframeMessage =
-  | BaseMessage<"HighlightFeature", { featureId: FeatureId }>
-  | BaseMessage<"SelectFeatures", { featureIds: FeatureId[] }>
-  | BaseMessage<"RemoveLayer", { layerId?: string }>
-  | BaseMessage<"ZoomToSelection", { featureIds: FeatureId[]; animate?: boolean | MapNavigatorAnimationOptions }>
-  | BaseMessage<"ZoomToLayer", { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>;
-```
+        return () => stop();
+    }, []);
 
-A more detailed example here
-```typescript
-import React, { useRef, useEffect } from "react";
-import ReactDOM from "react-dom/client";
-import { sendToIframe, listenFromIframes, IframeToParentMessage } from "@lib";
+    // 🕹️ Helper for sending commands
+    const groupChange = (options: { targetGroupId: string; mode?: MapModeType }) => {
+        if (mapRef.current) {
+            sendToIframe(mapRef.current, {
+                type: "SetLayerGroup",
+                data: options
+            });
+        }
+    };
 
-function MainApp() {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+    const zoomToDefault = () => {
+        if (mapRef.current) {
+            sendToIframe(mapRef.current, {
+                type: "ZoomToLayer",
+                data: { animate: true }
+            });
+        }
+    };
 
-  // Listen for messages from iframe
-  useEffect(() => {
-    const stop = listenFromIframes(
-      { demo: iframeRef.current },
-      (msg: IframeToParentMessage, frameId?: string) => {
-        console.log("Parent received:", msg, "from iframe:", frameId);
-          switch (msg.type) {
-              case "Ready":
-                  layer.current = msg.data.targetLayerId;
-                  console.log(msg.data.targetLayerId);
-                  break;
-              case "ClickedItem":
-                  console.log(msg.data.feature);
-                  if (iframeRef.current){
-                      sendToIframe(iframeRef.current, {type: "ZoomToSelection", data: {animate: true, featureIds: [msg.data.feature.id]}})
-                  }
-                  break;
-          }
-      }
+    return (
+        <div className="map-container">
+            <div className="toolbar">
+                <button className="primary-btn" onClick={zoomToDefault}>
+                    Zoom to Default
+                </button>
+                {/* Clean, reactive command firing */}
+                <button onClick={() => groupChange({ targetGroupId: "g1", mode: "2D" })}>
+                    2D Tactical View
+                </button>
+                <button onClick={() => groupChange({ targetGroupId: "g2", mode: "3D" })}>
+                    3D Terrain View
+                </button>
+            </div>
+
+            <iframe
+                ref={mapRef}
+                src="https://your-luciad-viewer.com"
+                className="luciad-iframe"
+                title="Tactical Map"
+            />
+        </div>
     );
-    return () => stop();
-  }, []);
-
-  const handleClick = () => {
-    if (iframeRef.current) {
-      sendToIframe(iframeRef.current, {
-        type: "ZoomToLayer",
-        data: { animate: false },
-      });
-    }
-  };
-
-  return (
-    <div>
-      <h1>Main App (Parent)</h1>
-      <button onClick={handleClick}>Send ZoomToLayer → Iframe</button>
-      <iframe
-        ref={iframeRef}
-        src="/iframe.html"
-        style={{ width: "100%", height: 480, border: "1px solid black" }}
-      />
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")!).render(<MainApp />);
-
+};
 ```
 
 ---
 
-## Usage
+## 📖 The Messaging API
 
-### Sending messages
+## 🕹️ Parent → Iframe Commands
 
-**Parent → Iframe**
+Sent via `sendToIframe(iframeEl, { type, data, frameId? })`.
 
-```ts
-sendToIframe(iframeElement, {
-  type: "ZoomToLayer",
-  data: { layerId: "roads", animate: false }
+| Message `type` | `data` Payload Parameters | Notes |
+| --- | --- | --- |
+| **`SetInitialMapSetup`** | `{ settings: InitialMapSetup }` | The master init object. |
+| **`SetLayerGroup`** | `{ targetGroupId: string, mode?: MapModeType }` | `mode` is optional. |
+| **`SetLayerVisibility`** | `{ layerId: string, visible: boolean }` | Direct toggle for a specific node. |
+| **`SetProjection`** | `{ mode: MapModeType }` | `mode` is `"2D" | "3D"`. |
+| **`HighlightFeature`** | `{ featureId: JSONFeatureId }` | Focuses on a single ID. |
+| **`SelectFeatures`** | `{ featureIds: JSONFeatureId[] }` | Takes an array of IDs. |
+| **`RemoveLayer`** | `{ layerId?: string }` | If `layerId` is omitted, behavior depends on implementation. |
+| **`ZoomToSelection`** | `{ featureIds: JSONFeatureId[], animate?: boolean | MapNavigatorAnimationOptions }` | `animate` can be a simple `true/false` or `{ duration: number }`. |
+| **`ZoomToLayer`** | `{ layerId?: string, animate?: boolean | MapNavigatorAnimationOptions }` | Fits view to layer bounds. |
+| **`AddLayer`** | `{ options: AddLayerOptions }` | Full configuration for new data. |
+
+---
+
+## 📥 Iframe → Parent Events
+
+Received via `listenFromIframes(refs, (msg, frameId?) => ... )`.
+
+| Message `type` | `data` Payload Parameters | Context |
+| --- | --- | --- |
+| **`MapReady`** | `{ mode: MapModeType }` | Sent once the Luciad engine is initialized. |
+| **`ClickedItem`** | `{ feature: JSONFeature }` | Contains GeoJSON geometry and properties. |
+| **`SelectedItems`** | `{ features: JSONFeature[] }` | Array of all currently active selections. |
+| **`ProjectionChanged`** | `{ mode: MapModeType }` | User switched 2D/3D via the map UI. |
+| **`TargetGroupChanged`** | `{ targetGroupId: string, mode: MapModeType }` | User changed the active group. |
+| **`LayerTreeChanged`** | `{ layerId: string, type: LayerTreeChangedEventType, layerTree: JSONLayerTree }` | `type` is `"NodeAdded" | "NodeRemoved" | "NodeMoved"`. |
+| **`LayerTreeVisibilityChanged`** | `{ layerTree: JSONLayerTree }` | Update on the entire tree visibility state. |
+| **`Error`** | `{ message: string }` | Standardized error string for debugging. |
+
+---
+
+### 🛡️ Critical Technical Details
+
+* **`frameId`**: Every message (both directions) carries an optional `frameId?: string`. This is vital for **multi-map dashboards**, allowing your event handler to identify exactly which instance (e.g., "MainMap" vs. "SecondaryMap") sent the `ClickedItem` event.
+* **Animation Overloads**: The `animate` property is a flexible union: `boolean | MapNavigatorAnimationOptions`. This allows for a simple `true`/`false` toggle or precise control via `{ duration: number }`.
+* **Strict Type Mapping**: Leveraging TypeScript's **Discriminated Unions**, the `ParentToIframeMap` and `IframeToParentMap` ensure that your IDE will flag an error if you attempt to send a payload that doesn't match the specific `type` of the message.
+
+
+## 💡 Advanced Features
+
+### Multiple Iframe Orchestration
+Managing multiple maps? Simply pass them all to the listener.
+```typescript
+listenFromIframes({ radar: ref1, satellite: ref2 }, (msg, frameId) => {
+  console.log(`Update came from ${frameId}:`, msg.type);
 });
 ```
 
-**Iframe → Parent**
-
-```ts
-sendToParent({
-  type: "SelectedItems",
-  data: { features: selectedFeatures }
-});
-```
+### Pro-Tip: Debug Mode
+Add `?debug=true` to your URL to unlock internal logging and gain deep visibility into the message flow.
 
 ---
 
-### Listening for messages
-
-**Parent listening from iframes**
-
-```ts
-listenFromIframes({ mainFrame: iframeRef.current }, (msg, frameId) => {
-  if (msg.type === "SelectedItems") {
-    console.log("Selected features from iframe:", msg.data.features);
-  }
-});
-```
-
-**Iframe listening from parent**
-
-```ts
-listenFromParent((msg) => {
-  if (msg.type === "HighlightFeature") {
-    highlightFeature(msg.data.featureId);
-  }
-});
-```
-
----
-
-### Debug Logging
-
-Enable debug logs by adding `?debug=true` to the URL:
-
-```ts
-consoleOnDebugMode("This will appear only if debug=true in URL");
-```
-
----
-
-## Notes
-
-- All message types are strictly typed; using an invalid `type` or incorrect `data` will result in a TypeScript compile-time error.
-- `frameId` is optional but recommended if multiple iframes are communicating with the parent.
-
----
-
-## License
+## 📄 License
 MIT © 2025
