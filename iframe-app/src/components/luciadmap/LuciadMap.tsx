@@ -172,6 +172,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                 mapRef.current.selectObjects([{ layer: activeLayer.current, objects: matches }]);
         }
     }
+
     const selectFeatures = (options: { featureIds: FeatureId[] }) => {
         if (activeLayer.current && mapRef.current) {
             const features = activeLayer.current.workingSet.get();
