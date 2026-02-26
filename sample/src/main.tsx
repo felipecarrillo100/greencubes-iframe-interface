@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
-import { sendToIframe, listenFromIframes, IframeToParentMessage, MapModeType, InitialMapSetup, JSONFeatureId } from "../../src";
+import {
+    sendToIframe, listenFromIframes, IframeToParentMessage, MapModeType, InitialMapSetup, JSONFeatureId,
+    JSONLayerTree
+} from "../../src";
 import "./main.css"
 import { TestData2 } from "./sampledata/TestData2";
-import { EventLogger } from "./EventLogger";
-import { JsonViewer } from "./JsonViewer";
+import { EventLogger } from "./components/EventLogger";
+import { JsonViewer } from "./components/JsonViewer";
+import {LayerTreeViewer} from "./components/LayerTreeViewer";
 
 const SiteSettings: InitialMapSetup = {
     children: TestData2.children,
@@ -19,8 +23,9 @@ const MainApp: React.FC = () => {
     const [currentMapMode, setCurrentMapMode] = useState("2D");
     const [logs, setLogs] = useState<string[]>([]);
     const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
-
     const layer = useRef(null as string | undefined | null);
+
+    const [layerTree, setLayerTree] = useState<JSONLayerTree>({children:[]});
 
     useEffect(() => {
         const stop = listenFromIframes(
@@ -38,7 +43,9 @@ const MainApp: React.FC = () => {
                         });
                         break;
                     case "LayerTreeChanged":
+                    case "LayerTreeVisibilityChanged":
                         console.log("LayerTree changed", msg);
+                        setLayerTree(msg.data.layerTree)
                         break;
                     case "TargetGroupChanged":
                         addLog("Target Group changed" + JSON.stringify(msg, null, 2));
@@ -117,8 +124,26 @@ const MainApp: React.FC = () => {
                 <button onClick={() => handleGroupChange({ targetGroupId: "group_3", mode: "2D" })}>Group 3 → Iframe</button>
                 <button onClick={() => handleGroupChange({ targetGroupId: "group_4", mode: "3D" })}>Group 4 → Iframe</button>
             </div>
-            <JsonViewer data={SiteSettings} />
-            <EventLogger logs={logs} />
+            <div>
+                <div style={{ width: "70%", display: "inline-block" }}>
+                    <JsonViewer data={SiteSettings} />
+                    <EventLogger logs={logs} />
+                </div>
+                <div style={{ width: "30%", display: "inline-block" }}>
+                    <LayerTreeViewer layerTree={layerTree} onLayerVisibilityChange={(id, visible)=>{
+                        if (iframeRef.current) {
+                            sendToIframe(iframeRef.current, {
+                                type: "SetLayerVisibility",
+                                data: {
+                                    layerId: id,
+                                    visible
+                                },
+                            });
+                        }
+                    }}/>
+                </div>
+            </div>
+
         </div>
     );
 }

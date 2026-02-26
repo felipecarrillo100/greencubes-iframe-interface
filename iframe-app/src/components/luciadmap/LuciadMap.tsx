@@ -16,6 +16,7 @@ import { InitialMapSetup } from "../../../../src/interfaces";
 import { Handle } from "@luciad/ria/util/Evented";
 import { LayerUtils, restrictBounds2D } from "./utils/LayerUtils";
 import { JSONLayerTreeUtils } from "../../utils/JSONLayerTreeUtils";
+import {createVisibilityListeners, removeVisibilityListeners, VisibilityManager} from "./managers/VisibilityManager";
 
 
 const WebMercator = "EPSG:3857";
@@ -97,6 +98,9 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                 case "RemoveLayer":
                     removeLayer(msg.data);
                     break;
+                case "SetLayerVisibility":
+                    setLayerVisibility(msg.data);
+                    break;
                 case "SetProjection":
                     setProjection(msg.data);
                     break;
@@ -152,6 +156,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
 
     const divRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<WebGLMap | null>(null);
+    const visibilityManager = useRef<VisibilityManager | null>(null)
     const activeLayer = useRef<FeatureLayer | null>(null);
 
     const highlightFeature = (options: { featureId: FeatureId }) => {
@@ -168,6 +173,16 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
             const matches = features.filter(f => options.featureIds.includes(f.id));
             if (matches.length === 1)
                 mapRef.current.selectObjects([{ layer: activeLayer.current, objects: matches }]);
+        }
+    }
+
+    const setLayerVisibility =  (options: { layerId?: string, visible: boolean }) => {
+        if (mapRef.current) {
+            console.log("!!!!!!!!!!!!!!!!!!!!!!!!")
+            if (options.layerId) {
+                const layer = mapRef.current.layerTree.findLayerTreeNodeById(options.layerId);
+                layer.visible = options.visible;
+            }
         }
     }
 
@@ -282,6 +297,15 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     }
 
+    const triggerOnLaterVisibilityChanged = () => {
+        if (mapRef.current) {
+            sendToParent({
+                type: "LayerTreeVisibilityChanged",
+                data: { layerTree: { children: JSONLayerTreeUtils.fromLayerTree(mapRef.current?.layerTree) }},
+            });
+        }
+    }
+
     const triggerOnClickAction = (feature: Feature) => {
         if (typeof props.geometryClicked === "function") {
             props.geometryClicked(feature);
@@ -294,11 +318,15 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         if (divRef.current) {
             mapRef.current = new WebGLMap(divRef.current, { reference });
             addListenerLayerTreeChange(mapRef.current, triggerOnLayerTreeChange);
+            console.log("Listener started")
+            visibilityManager.current = createVisibilityListeners(mapRef.current.layerTree, triggerOnLaterVisibilityChanged)
             if (typeof props.onMapReady === "function") props.onMapReady(mapRef.current);
         }
         return () => {
             if (mapRef.current) mapRef.current.destroy();
+            if (visibilityManager.current !== null) removeVisibilityListeners(visibilityManager.current);
             mapRef.current = null;
+            visibilityManager.current = null;
             if (typeof props.onMapReady === "function") props.onMapReady(null);
         }
     }, []);

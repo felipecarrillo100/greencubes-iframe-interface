@@ -43,6 +43,7 @@ export type IframeToParentMessage =
     | BaseMessage<"ProjectionChanged", { mode: MapModeType }>
     | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType }>
     | BaseMessage<"LayerTreeChanged", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved", layerTree: JSONLayerTree }>
+    | BaseMessage<"LayerTreeVisibilityChanged", { layerTree: JSONLayerTree }>
     | BaseMessage<"ClickedItem", { feature: JSONFeature }>
     | BaseMessage<"SelectedItems", { features: JSONFeature[] }>
     | BaseMessage<"MapReady", { mode: MapModeType }>
@@ -58,6 +59,7 @@ export type IframeToParentMessage =
 export type ParentToIframeMessage =
     | BaseMessage<"SetInitialMapSetup", { settings: InitialMapSetup }>
     | BaseMessage<"SetLayerGroup", { targetGroupId: string, mode?: MapModeType }>
+    | BaseMessage<"SetLayerVisibility", { layerId: string, visible: boolean }>
     | BaseMessage<"SetProjection", { mode: MapModeType }>
     | BaseMessage<"HighlightFeature", { featureId: JSONFeatureId }>
     | BaseMessage<"SelectFeatures", { featureIds: JSONFeatureId[] }>
