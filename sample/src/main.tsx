@@ -37,6 +37,9 @@ const MainApp: React.FC = () => {
                             },
                         });
                         break;
+                    case "LayerTreeChanged":
+                        console.log("LayerTree changed", msg);
+                        break;
                     case "TargetGroupChanged":
                         addLog("Target Group changed" + JSON.stringify(msg, null, 2));
                         break

@@ -9,12 +9,14 @@ import { FeatureLayer } from "@luciad/ria/view/feature/FeatureLayer.js";
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import { listenFromParent, MapModeType, type ParentToIframeMessage, sendToParent } from "../../../../src";
+import { listenFromParent, MapModeType, type ParentToIframeMessage, sendToParent, JSONLayerTree } from "../../../../src";
 import { ElevationLayerState, LayerBuilder } from "./factories/LayerBuilder";
 import { CoordinateReference } from "@luciad/ria/reference/CoordinateReference";
-import { InitialMapSetup } from "./factories/LayerBuilderInterfaces";
+import { InitialMapSetup } from "../../../../src/interfaces";
 import { Handle } from "@luciad/ria/util/Evented";
 import { LayerUtils, restrictBounds2D } from "./utils/LayerUtils";
+import { JSONLayerTreeUtils } from "../../utils/JSONLayerTreeUtils";
+
 
 const WebMercator = "EPSG:3857";
 const WORLD3D = "EPSG:4978";
@@ -33,7 +35,10 @@ interface Props {
     onShowTime?: (options: { status: boolean, errorMessage?: string, targetLayerId?: string }) => void;
     geometrySelected?: (features: Feature[]) => void;
     geometryClicked?: (feature: Feature) => void;
-    layerTreeChange?: (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }) => void;
+    layerTreeChange?: (o: {
+        layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved",
+        layerTree: JSONLayerTree
+    }) => void;
 }
 
 function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }) => void) {
@@ -267,8 +272,13 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     }
 
     const triggerOnLayerTreeChange = (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }) => {
-        if (typeof props.layerTreeChange === "function") {
-            props.layerTreeChange(o);
+        if (typeof props.layerTreeChange === "function" && mapRef.current) {
+            const layerTree = mapRef.current.layerTree;
+            const jsonLayerTree: JSONLayerTree = { children: JSONLayerTreeUtils.fromLayerTree(layerTree) };
+            props.layerTreeChange({
+                ...o,
+                layerTree: jsonLayerTree
+            });
         }
     }
 

@@ -1,9 +1,11 @@
 // src/index.ts
 import { JSONFeature, JSONFeatureId } from "./JSONFeature";
 import { InitialMapSetup, MapModeType } from "./interfaces";
+import { JSONLayerTree } from "./JSONLayerTree";
 
 export * from "./interfaces";
 export * from "./JSONFeature";
+export * from "./JSONLayerTree";
 
 /**
  * Serializable version of Luciad MapNavigatorAnimationOptions
@@ -40,7 +42,7 @@ export interface BaseMessage<T extends string, D> {
 export type IframeToParentMessage =
     | BaseMessage<"ProjectionChanged", { mode: MapModeType }>
     | BaseMessage<"TargetGroupChanged", { targetGroupId: string, mode: MapModeType }>
-    | BaseMessage<"LayerTreeChange", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }>
+    | BaseMessage<"LayerTreeChanged", { layerId: string; type: "NodeAdded" | "NodeRemoved" | "NodeMoved", layerTree: JSONLayerTree }>
     | BaseMessage<"ClickedItem", { feature: JSONFeature }>
     | BaseMessage<"SelectedItems", { features: JSONFeature[] }>
     | BaseMessage<"MapReady", { mode: MapModeType }>

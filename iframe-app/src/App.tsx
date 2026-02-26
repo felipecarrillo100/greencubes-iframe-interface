@@ -6,9 +6,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type { Feature } from "@luciad/ria/model/feature/Feature.js";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import { consoleOnDebugMode, MapModeType, sendToParent } from "../../src";
+import { consoleOnDebugMode, MapModeType, sendToParent, JSONLayerTree } from "../../src";
 import './App.scss';
-import { Shape } from "@luciad/ria/shape/Shape.js";
 import { WebGLMap } from "@luciad/ria/view/WebGLMap.js";
 import { JSONFeature, JSONFeatureId } from "../../src/JSONFeature";
 import { GeoJSONUtils } from "./utils/GeoJSONUtils";
@@ -65,13 +64,17 @@ const App: React.FC = () => {
         }
     }
 
-    const layerTreeChange = (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved" }) => {
+    const layerTreeChange = (o: { layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved", layerTree: JSONLayerTree }) => {
         // Detect if running inside an iframe
         sendToParent({
-            type: "LayerTreeChange",
-            data: { layerId: o.layerTreeNodeChange.node.id, type: o.type },
+            type: "LayerTreeChanged",
+            data: {
+                layerId: o.layerTreeNodeChange.node.id,
+                type: o.type,
+                layerTree: o.layerTree
+            },
         });
-        consoleOnDebugMode(`Layer Change! ${o.layerTreeNodeChange.node} ${o.type}`);
+        consoleOnDebugMode(`Layer Change! ${o.layerTreeNodeChange.node.id} ${o.type}`);
     }
 
     const onGeometrySelected = (features: Feature[]) => {
