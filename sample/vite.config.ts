@@ -31,7 +31,7 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
-                main: path.resolve(__dirname, "sample.html"),
+                main: path.resolve(__dirname, "index.html"),
             },
         },
     },
