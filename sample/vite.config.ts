@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
+    // SET BASE TO RELATIVE
+    // This ensures assets are loaded relative to index.html (e.g., ./assets/...)
+    // instead of the domain root (e.g., /assets/...)
+    base: './',
+
     // Include extra asset types like GLB
     assetsInclude: ["**/*.glb"],
 

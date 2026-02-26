@@ -6,10 +6,11 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type { Feature } from "@luciad/ria/model/feature/Feature.js";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import { consoleOnDebugMode, MapModeType, sendToParent, JSONLayerTree } from "../../src";
+import { consoleOnDebugMode, sendToParent } from "@library/index";
+import type { MapModeType, JSONLayerTree } from "@library/index";
+import type { JSONFeature, JSONFeatureId } from "@library/JSONFeature";
 import './App.scss';
 import { WebGLMap } from "@luciad/ria/view/WebGLMap.js";
-import { JSONFeature, JSONFeatureId } from "../../src/JSONFeature";
 import { GeoJSONUtils } from "./utils/GeoJSONUtils";
 
 const theme = createTheme({

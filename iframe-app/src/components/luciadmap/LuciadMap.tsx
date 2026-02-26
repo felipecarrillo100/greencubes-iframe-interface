@@ -9,15 +9,12 @@ import { FeatureLayer } from "@luciad/ria/view/feature/FeatureLayer.js";
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
-import {
-    listenFromParent, sendToParent,
-    type MapModeType, type ParentToIframeMessage,
-    type JSONLayerTree,
-    type LayerTreeChangedEventType
-} from "../../../../src";
+import {listenFromParent, sendToParent} from "@library/index";
+import type {MapModeType, ParentToIframeMessage, JSONLayerTree, LayerTreeChangedEventType } from "@library/index";
+import type { InitialMapSetup } from "@library/interfaces";
 import { ElevationLayerState, LayerBuilder } from "./factories/LayerBuilder";
 import { CoordinateReference } from "@luciad/ria/reference/CoordinateReference";
-import { InitialMapSetup } from "../../../../src/interfaces";
+
 import { Handle } from "@luciad/ria/util/Evented";
 import { LayerUtils, restrictBounds2D } from "./utils/LayerUtils";
 import { JSONLayerTreeUtils } from "../../utils/JSONLayerTreeUtils";
