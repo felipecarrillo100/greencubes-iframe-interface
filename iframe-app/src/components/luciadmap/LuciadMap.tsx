@@ -36,7 +36,7 @@ const easeInOutCubic = (n: number): number => {
 interface Props {
     onMapReady?: (m: WebGLMap | null) => void;
     onShowTime?: (options: { status: boolean, errorMessage?: string, targetLayerId?: string }) => void;
-    geometrySelected?: (features: Feature[], layerId: string) => void;
+    geometrySelected?: (selection: {[key:string]: Feature[]}) => void;
     geometryClicked?: (feature: Feature, layerId: string) => void;
     layerTreeChange?: (o: {
         layerTreeNodeChange: LayerTreeNodeChangeEvent, type: "NodeAdded" | "NodeRemoved" | "NodeMoved",
@@ -57,22 +57,18 @@ function addListenerLayerTreeChange(map: WebGLMap, callback?: (o: { layerTreeNod
     map.layerTree.on("NodeMoved", action("NodeMoved"));
 }
 
-function addListenerOnSelectionChange(map: WebGLMap, featureLayer: FeatureLayer, callback?: (features: Feature[], layerId: string) => void): Handle {
+function addListenerOnSelectionChange(map: WebGLMap, callback?: (selection: {[key:string]: Feature[]}) => void): Handle {
     // This code will be called every time the selection change in the map
     return map.on("SelectionChanged", () => {
         // Find a layer by ID in the map layerTree
-        const layer = featureLayer;
         const selection = [...map.selectedObjects];
-        // Verify only one layer / one feature is selected
-        if (selection.length === 1 && selection[0].layer === layer) {
-            if (selection[0].selected.length > 0) {
-                const features = selection[0].selected as Feature[];
-                // Assign the controller to the map to edit the selected feature
-                if (typeof callback === "function") callback(features, featureLayer.id);
-            }
-        } else {
-            if (typeof callback === "function") callback([], featureLayer.id);
+        const mapSelection: {[key:string]: Feature[]} = {}
+
+        for (const item of selection) {
+            mapSelection[item.layer.id] = item.selected  as Feature[]
         }
+        // Verify only one layer / one feature is selected
+        if (typeof callback === "function") callback(mapSelection);
     });
 }
 
@@ -85,7 +81,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         // Subscribe to messages from parent
         const unsubscribe = listenFromParent((msg: ParentToIframeMessage) => {
             switch (msg.type) {
-                case ParentToIframeMsg.HighlightFeature:
+                case ParentToIframeMsg.SelectFeature:
                     highlightFeature(msg.data);
                     break;
                 case ParentToIframeMsg.SelectFeatures:
@@ -225,10 +221,16 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     const setInitialMapSetup = (options: { settings: InitialMapSetup }) => {
         if (options.settings && mapRef.current) {
             setProjection(options.settings);
+            mapRef.current.layerTree.removeAllChildren();
             LayerBuilder.build(mapRef.current.layerTree, options.settings).then(() => {
                 if (!mapRef.current) return;
                 // MAke all vector layers clickable!!!
                 makeFeatureLayersClickable(mapRef.current.layerTree);
+                if (selectionChangeHandle.current !== null) {
+                    selectionChangeHandle.current.remove();
+                    selectionChangeHandle.current = null;
+                }
+                selectionChangeHandle.current = addListenerOnSelectionChange(mapRef.current, triggerOnSelectionChangeAction)
 
                 if (options.settings.targetGroupId) {
                     LayerBuilder.setTargetGroup(mapRef.current.layerTree, options.settings.targetGroupId);
@@ -246,13 +248,7 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                 if (options.settings.targetFeatureLayerID) {
                     const targetLayer = mapRef.current?.layerTree.findLayerById(options.settings.targetFeatureLayerID);
                     if (targetLayer && targetLayer instanceof FeatureLayer) {
-                        if (selectionChangeHandle.current !== null) {
-                            selectionChangeHandle.current.remove();
-                            selectionChangeHandle.current = null;
-                        }
-                       // targetLayer.onClick = triggerOnClickAction(targetLayer.id);
                         activeLayer.current = targetLayer;
-                        selectionChangeHandle.current = addListenerOnSelectionChange(mapRef.current, targetLayer, triggerOnSelectionChangeAction)
                     }
                 }
                 if (typeof props.onShowTime === "function") props.onShowTime({ status: true });
@@ -308,9 +304,9 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
     }
 
 
-    const triggerOnSelectionChangeAction = (features: Feature[], layerId: string) => {
+    const triggerOnSelectionChangeAction = (selection: {[key:string]: Feature[]}) => {
         if (typeof props.geometrySelected === "function") {
-            props.geometrySelected(features, layerId);
+            props.geometrySelected(selection);
         }
     }
 

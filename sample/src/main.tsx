@@ -38,7 +38,7 @@ const MainApp: React.FC = () => {
             (msg: IframeToParentMessage, sourceFrameId?: string) => {
                 console.log("Parent received:", msg, "from", sourceFrameId);
                 switch (msg.type) {
-                    case IframeToParentMsg.MapReady:
+                    case IframeToParentMsg.onMapReady:
                         addLog("Map is ready" + JSON.stringify(msg, null, 2));
                         iframeRef.current && sendToIframe(iframeRef.current, {
                             type: ParentToIframeMsg.SetInitialMapSetup,
@@ -65,8 +65,8 @@ const MainApp: React.FC = () => {
                             sendToIframe(iframeRef.current, { type: ParentToIframeMsg.ZoomToSelection, data: { animate: true, featureIds: [msg.data.feature.id as JSONFeatureId] } })
                         }
                         break;
-                    case IframeToParentMsg.SelectedItems:
-                        console.log(msg.data);
+                    case IframeToParentMsg.SelectionChanged:
+                        addLog(`Selection-Changed`);
                         break;
                 }
             }

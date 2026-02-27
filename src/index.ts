@@ -46,8 +46,8 @@ export enum IframeToParentMsg {
     LayerTreeChanged = "LayerTreeChanged",
     LayerTreeVisibilityChanged = "LayerTreeVisibilityChanged",
     ClickedItem = "ClickedItem",
-    SelectedItems = "SelectedItems",
-    MapReady = "MapReady",
+    SelectionChanged = "SelectionChanged",
+    onMapReady = "onMapReady",
     Error = "Error",
 }
 
@@ -60,8 +60,8 @@ export type IframeToParentMessage =
     | BaseMessage<IframeToParentMsg.LayerTreeChanged, { layerId: string; type: LayerTreeChangedEventType, layerTree: JSONLayerTree }>
     | BaseMessage<IframeToParentMsg.LayerTreeVisibilityChanged, { layerTree: JSONLayerTree }>
     | BaseMessage<IframeToParentMsg.ClickedItem, { feature: JSONFeature, layerId: string }>
-    | BaseMessage<IframeToParentMsg.SelectedItems, { features: JSONFeature[], layerId: string }>
-    | BaseMessage<IframeToParentMsg.MapReady, { mode: MapModeType }>
+    | BaseMessage<IframeToParentMsg.SelectionChanged, { selectedItems: {[key:string]: JSONFeature[]}}>
+    | BaseMessage<IframeToParentMsg.onMapReady, { mode: MapModeType }>
     | BaseMessage<IframeToParentMsg.Error, { message: string }>;
 
 // ==============================
@@ -76,7 +76,7 @@ export enum ParentToIframeMsg {
     SetLayerGroup = "SetLayerGroup",
     SetLayerVisibility = "SetLayerVisibility",
     SetProjection = "SetProjection",
-    HighlightFeature = "HighlightFeature",
+    SelectFeature = "SelectFeature",
     SelectFeatures = "SelectFeatures",
     RemoveLayer = "RemoveLayer",
     ZoomToSelection = "ZoomToSelection",
@@ -92,7 +92,7 @@ export type ParentToIframeMessage =
     | BaseMessage<ParentToIframeMsg.SetLayerGroup, { targetGroupId: string, mode?: MapModeType }>
     | BaseMessage<ParentToIframeMsg.SetLayerVisibility, { layerId: string, visible: boolean }>
     | BaseMessage<ParentToIframeMsg.SetProjection, { mode: MapModeType }>
-    | BaseMessage<ParentToIframeMsg.HighlightFeature, { featureId: JSONFeatureId, layerId?: string }>
+    | BaseMessage<ParentToIframeMsg.SelectFeature, { featureId: JSONFeatureId, layerId?: string }>
     | BaseMessage<ParentToIframeMsg.SelectFeatures, { featureIds: JSONFeatureId[], layerId?: string }>
     | BaseMessage<ParentToIframeMsg.RemoveLayer, { layerId?: string }>
     | BaseMessage<ParentToIframeMsg.ZoomToSelection, { featureIds: JSONFeatureId[]; animate?: boolean | MapNavigatorAnimationOptions, layerId?: string }>

@@ -78,26 +78,30 @@ const App: React.FC = () => {
         consoleOnDebugMode(`Layer Change! ${o.layerTreeNodeChange.node.id} ${o.type}`);
     }
 
-    const onGeometrySelected = (features: Feature[], layerId: string) => {
+    const onGeometrySelected = (selection: {[key:string]: Feature[]}) => {
         // Detect if running inside an iframe
+        const selectedItems: {[key:string]: JSONFeature[]} = {}
+        for (let key in selection) {
+            selectedItems[key] = selection[key].map(f => ({
+                id: f.id,
+                properties: f.properties,
+                geometry: GeoJSONUtils.shapeToGeometry(f.shape),
+            })) as JSONFeature[]
+        }
         sendToParent({
-            type: IframeToParentMsg.SelectedItems,
+            type: IframeToParentMsg.SelectionChanged,
             data: {
-                features: features.map(f => ({
-                    id: f.id,
-                    properties: f.properties,
-                    geometry: GeoJSONUtils.shapeToGeometry(f.shape),
-                })) as JSONFeature[], layerId
+                selectedItems
             },
         });
-        consoleOnDebugMode(`Selected triggered! [${features.map(f => f.id).join(", ")}]`);
+        consoleOnDebugMode(`Selected triggered! [${JSON.stringify(selection)}]`);
     }
 
     const onMapReady = (m: WebGLMap | null) => {
         if (m) {
             const mode: MapModeType = (m.reference.identifier.toUpperCase() === "EPSG:4978") ? "3D" : "2D"
             sendToParent({
-                type: IframeToParentMsg.MapReady,
+                type: IframeToParentMsg.onMapReady,
                 data: {
                     mode
                 }
