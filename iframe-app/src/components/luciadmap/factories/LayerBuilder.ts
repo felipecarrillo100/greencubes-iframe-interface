@@ -3,7 +3,7 @@ import { LayerTree } from "@luciad/ria/view/LayerTree";
 import { LayerTreeNode } from "@luciad/ria/view/LayerTreeNode";
 import { ModelFactory } from "./ModelFactory";
 import { LayerFactory, SharedLayerGroup } from "./LayerFactory";
-import { BuilderLayerType, LayerConfig, LayerTreeConfig } from "../../../../../src";
+import {BuilderLayerType, LayerConfig, LayerTreeConfig, MoveLayerOptions} from "../../../../../src";
 import { LayerTreeNodeType } from "@luciad/ria/view/LayerTreeNodeType";
 import { LayerTreeVisitor } from "@luciad/ria/view/LayerTreeVisitor";
 import { Layer } from "@luciad/ria/view/Layer.js";
@@ -142,6 +142,44 @@ export class LayerBuilder {
             }
         } catch (e) {
             throw e;
+        }
+    }
+
+    public static moveLayer(layerTree: LayerTree, options: MoveLayerOptions): LayerTreeNode | null {
+        const { layerId, position = "top", referenceLayerId } = options;
+
+        try {
+            const newNode = layerTree.findLayerTreeNodeById(layerId);
+            if (!newNode) return null;
+
+            let parent: LayerTree | LayerGroup = layerTree;
+            let finalPosition: "top" | "bottom" | "above" | "below" = (position === "parent") ? "top" : (  (position === "parent-bottom") ? "bottom": position);
+            let referenceNode: LayerTreeNode | undefined;
+
+            if (referenceLayerId) {
+                const found = layerTree.findLayerTreeNodeById(referenceLayerId);
+                if (found) {
+                    if (position === "above" || position === "below") {
+                        parent = found.parent || layerTree;
+                        referenceNode = found;
+                    } else if (position === "parent" || position === "parent-bottom") {
+                        if (found instanceof LayerGroup) {
+                            parent = found;
+                        } else {
+                            console.warn(`[LayerBuilder] Target node ${referenceLayerId} is not a group. Aborting.`);
+                            return null;
+                        }
+                    }
+                } else {
+                    console.warn(`[LayerBuilder] Reference layer/group ${referenceLayerId} not found. Aborting.`);
+                    return null;
+                }
+            }
+            parent.moveChild(newNode, finalPosition as any, referenceNode);
+            return newNode;
+        } catch (error) {
+            console.error(`[LayerBuilder] Error moving layer:`, error);
+            return null;
         }
     }
 

@@ -1,6 +1,6 @@
 // src/index.ts
 import { JSONFeature, JSONFeatureId } from "./JSONFeature";
-import { InitialMapSetup, MapModeType, AddLayerOptions } from "./interfaces";
+import {InitialMapSetup, MapModeType, AddLayerOptions, MoveLayerOptions} from "./interfaces";
 import { JSONLayerTree } from "./JSONLayerTree";
 
 export * from "./interfaces";
@@ -82,6 +82,7 @@ export enum ParentToIframeMsg {
     ZoomToSelection = "ZoomToSelection",
     ZoomToLayer = "ZoomToLayer",
     AddLayer = "AddLayer",
+    MoveLayer = "MoveLayer",
 }
 
 /**
@@ -97,6 +98,7 @@ export type ParentToIframeMessage =
     | BaseMessage<ParentToIframeMsg.RemoveLayer, { layerId?: string }>
     | BaseMessage<ParentToIframeMsg.ZoomToSelection, { featureIds: JSONFeatureId[]; animate?: boolean | MapNavigatorAnimationOptions, layerId?: string }>
     | BaseMessage<ParentToIframeMsg.ZoomToLayer, { layerId?: string; animate?: boolean | MapNavigatorAnimationOptions }>
+    | BaseMessage<ParentToIframeMsg.MoveLayer, { options: MoveLayerOptions}>
     | BaseMessage<ParentToIframeMsg.AddLayer, { options: AddLayerOptions }>;
 
 // ==============================

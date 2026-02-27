@@ -172,6 +172,12 @@ export interface AddLayerOptions {
     referenceLayerId?: string;
 }
 
+export interface MoveLayerOptions {
+    layerId: string;
+    position?: AddLayerPosition;
+    referenceLayerId?: string;
+}
+
 export interface LayerTreeConfig {
     children: LayerConfig[];
 }

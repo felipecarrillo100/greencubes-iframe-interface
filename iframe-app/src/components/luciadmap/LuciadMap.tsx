@@ -11,7 +11,7 @@ import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
 import {LayerTree, LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
 import { listenFromParent, sendToParent, ParentToIframeMsg, IframeToParentMsg } from "@library/index";
 import type { MapModeType, ParentToIframeMessage, JSONLayerTree, LayerTreeChangedEventType, AddLayerOptions } from "@library/index";
-import type { InitialMapSetup } from "@library/interfaces";
+import type {InitialMapSetup, MoveLayerOptions} from "@library/interfaces";
 import { ElevationLayerState, LayerBuilder } from "./factories/LayerBuilder";
 import { CoordinateReference } from "@luciad/ria/reference/CoordinateReference";
 
@@ -110,6 +110,9 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                     break;
                 case ParentToIframeMsg.AddLayer:
                     addLayer(msg.data.options);
+                    break;
+                case ParentToIframeMsg.MoveLayer:
+                    moveLayer(msg.data.options);
                     break;
                 default:
                     // @ts-ignore
@@ -285,6 +288,11 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     };
 
+    const moveLayer = (options: MoveLayerOptions) => {
+        if (mapRef.current) {
+            LayerBuilder.moveLayer(mapRef.current.layerTree, options);
+        }
+    }
     const addLayer = (options: AddLayerOptions) => {
         if (mapRef.current) {
             LayerBuilder.addLayer(mapRef.current.layerTree, options);
