@@ -5,7 +5,8 @@ import {
     JSONLayerClass,
     JSONLayerGroup
 } from "@library/JSONLayerTree";
-import { sendToIframe } from "@library/index";
+import { sendToIframe, ParentToIframeMsg } from "@library/index";
+import {MoveLayerOptions} from "@library/interfaces";
 
 // --- Context for Performance and Cleanliness ---
 interface LayerTreeContextProps {
@@ -13,6 +14,9 @@ interface LayerTreeContextProps {
     expandedIds: Set<string>;
     toggleExpand: (id: string) => void;
     reverse: boolean;
+    draggedId: string | null;
+    setDraggedId: (id: string | null) => void;
+    onMoveLayer: (options: MoveLayerOptions) => void;
 }
 
 const LayerTreeContext = createContext<LayerTreeContextProps | undefined>(undefined);
@@ -67,29 +71,32 @@ const getAllGroupIds = (nodes: JSONLayerTreeNode[]): string[] => {
 // --- Actions Hook ---
 const useLayerActions = (iframe?: React.RefObject<HTMLIFrameElement | null>) => {
     return useMemo(() => ({
-        onDeleteLayer: (id: string) => iframe?.current && sendToIframe(iframe.current, { type: "RemoveLayer", data: { layerId: id } }),
-        onZoomToLayer: (id: string) => iframe?.current && sendToIframe(iframe.current, { type: "ZoomToLayer", data: { layerId: id, animate: { duration: 500 } } }),
-        onLayerVisibilityChange: (id: string, visible: boolean) => iframe?.current && sendToIframe(iframe.current, { type: "SetLayerVisibility", data: { layerId: id, visible } })
+        onDeleteLayer: (id: string) => iframe?.current && sendToIframe(iframe.current, { type: ParentToIframeMsg.RemoveLayer, data: { layerId: id } }),
+        onZoomToLayer: (id: string) => iframe?.current && sendToIframe(iframe.current, { type: ParentToIframeMsg.ZoomToLayer, data: { layerId: id, animate: { duration: 500 } } }),
+        onLayerVisibilityChange: (id: string, visible: boolean) => iframe?.current && sendToIframe(iframe.current, { type: ParentToIframeMsg.SetLayerVisibility, data: { layerId: id, visible } })
     }), [iframe]);
 };
 
-// --- Types ---
+// --- Main Component ---
 interface LayerTreeViewerProps {
     layerTree: JSONLayerTree;
     iframe?: React.RefObject<HTMLIFrameElement | null>;
     reverse?: boolean;
 }
 
-interface LayerTreeContextProps {
-    iframe?: React.RefObject<HTMLIFrameElement | null>;
-    expandedIds: Set<string>;
-    toggleExpand: (id: string) => void;
-    reverse: boolean;
-}
-
-// --- Main Component ---
 export const LayerTreeViewer: React.FC<LayerTreeViewerProps> = ({ layerTree, iframe, reverse = false }) => {
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+
+    const onMoveLayer = (options: MoveLayerOptions) => {
+        if (options.layerId === options.referenceLayerId) return;
+        if (iframe?.current) {
+            sendToIframe(iframe.current, {
+                type: ParentToIframeMsg.MoveLayer,
+                data: { options }
+            });
+        }
+    };
 
     const contextValue = useMemo(() => ({
         iframe,
@@ -99,8 +106,11 @@ export const LayerTreeViewer: React.FC<LayerTreeViewerProps> = ({ layerTree, ifr
             if (next.has(id)) next.delete(id); else next.add(id);
             return next;
         }),
-        reverse
-    }), [iframe, expandedIds, reverse]);
+        reverse,
+        draggedId,
+        setDraggedId,
+        onMoveLayer
+    }), [iframe, expandedIds, reverse, draggedId]);
 
     const rootNodes = useMemo(() => reverse ? [...layerTree.children] : [...layerTree.children].reverse(), [layerTree.children, reverse]);
 
@@ -109,11 +119,11 @@ export const LayerTreeViewer: React.FC<LayerTreeViewerProps> = ({ layerTree, ifr
             <div style={{
                 marginTop: '10px',
                 padding: '10px',
-                backgroundColor: '#1a1b1e', // Dark theme consistent with screenshot
+                backgroundColor: '#1a1b1e',
                 color: '#ced4da',
                 fontFamily: 'monospace',
                 fontSize: '12px',
-                height: '412px', // Matches the height of JsonViewer + margin + EventLog approx.
+                height: '412px',
                 width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
@@ -153,21 +163,78 @@ const btnStyle: React.CSSProperties = {
 
 const TreeNode: React.FC<{ node: JSONLayerTreeNode }> = ({ node }) => {
     const context = useContext(LayerTreeContext);
+    const [dropIndicator, setDropIndicator] = useState<"above" | "below" | "parent" | null>(null);
+
     if (!context) return null;
-    const { expandedIds, toggleExpand, iframe, reverse } = context;
+    const { expandedIds, toggleExpand, iframe, reverse, draggedId, setDraggedId, onMoveLayer } = context;
     const { onDeleteLayer, onZoomToLayer, onLayerVisibilityChange } = useLayerActions(iframe);
 
     const isGroup = node.className === JSONLayerClass.LayerGroup;
     const isExpanded = expandedIds.has(node.id);
     const childNodes = useMemo(() => isGroup ? (reverse ? [...(node as JSONLayerGroup).children] : [...(node as JSONLayerGroup).children].reverse()) : [], [node, isGroup, reverse]);
 
+    // --- Drag and Drop Logic ---
+    const handleDragStart = (e: React.DragEvent) => {
+        setDraggedId(node.id);
+        e.dataTransfer.setData("text/plain", node.id);
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (draggedId === node.id) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+
+        // Logical splitting of the node row into drop regions
+        if (y < rect.height * 0.25) {
+            setDropIndicator("above");
+        } else if (isGroup && y > rect.height * 0.25 && y < rect.height * 0.75) {
+            setDropIndicator("parent");
+        } else {
+            setDropIndicator("below");
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sourceId = e.dataTransfer.getData("text/plain");
+
+        if (sourceId && sourceId !== node.id && dropIndicator) {
+            onMoveLayer({layerId:sourceId, referenceLayerId: node.id, position: dropIndicator});
+        }
+        setDropIndicator(null);
+        setDraggedId(null);
+    };
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-                display: 'flex', alignItems: 'center', padding: '3px 0',
-                opacity: node.visible ? 1 : 0.5,
-                cursor: isGroup ? 'pointer' : 'default'
-            }} onClick={() => isGroup && toggleExpand(node.id)}>
+        <div
+            style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}
+            onDragLeave={() => setDropIndicator(null)}
+        >
+            {/* Visual Drop Line - Above */}
+            {dropIndicator === "above" && <div style={{ height: '2px', background: '#4dabf7', width: '100%' }} />}
+
+            <div
+                draggable
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onDragEnd={() => setDraggedId(null)}
+                style={{
+                    display: 'flex', alignItems: 'center', padding: '3px 0',
+                    opacity: node.visible ? 1 : 0.5,
+                    cursor: isGroup ? 'pointer' : 'grab',
+                    backgroundColor: dropIndicator === "parent" ? 'rgba(77, 171, 247, 0.2)' : (draggedId === node.id ? '#2c2e33' : 'transparent'),
+                    borderRadius: '2px',
+                    transition: 'background-color 0.1s'
+                }}
+                onClick={() => isGroup && toggleExpand(node.id)}
+            >
                 <div style={{ width: '16px', display: 'flex', alignItems: 'center', color: '#888' }}>
                     {isGroup && <ChevronIcon expanded={isExpanded} />}
                 </div>
@@ -180,6 +247,10 @@ const TreeNode: React.FC<{ node: JSONLayerTreeNode }> = ({ node }) => {
                     <div onClick={(e) => { e.stopPropagation(); onLayerVisibilityChange(node.id, !node.visible); }}><VisibilityIcon visible={node.visible} /></div>
                 </div>
             </div>
+
+            {/* Visual Drop Line - Below */}
+            {dropIndicator === "below" && <div style={{ height: '2px', background: '#4dabf7', width: '100%' }} />}
+
             {isGroup && isExpanded && (
                 <div style={{ marginLeft: '12px', borderLeft: '1px solid #333', paddingLeft: '4px' }}>
                     {childNodes.map(child => <TreeNode key={child.id} node={child} />)}

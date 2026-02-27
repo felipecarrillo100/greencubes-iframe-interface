@@ -155,10 +155,10 @@ const MainApp: React.FC = () => {
                 style={{ width: "100%", height: 480, border: "1px solid black" }}
             />
             <div className="group-selection-holder">
-                <button onClick={() => handleGroupChange({ targetGroupId: "group_1", mode: "3D" })}>Group 1 → Iframe</button>
-                <button onClick={() => handleGroupChange({ targetGroupId: "group_2", mode: "2D" })}>Group 2 → Iframe</button>
-                <button onClick={() => handleGroupChange({ targetGroupId: "group_3", mode: "2D" })}>Group 3 → Iframe</button>
-                <button onClick={() => handleGroupChange({ targetGroupId: "group_4", mode: "3D" })}>Group 4 → Iframe</button>
+                <button onClick={() => handleGroupChange({ targetGroupId: "group_1", mode: "3D" })}>Group A → Iframe</button>
+                <button onClick={() => handleGroupChange({ targetGroupId: "group_2", mode: "2D" })}>Group B → Iframe</button>
+                <button onClick={() => handleGroupChange({ targetGroupId: "group_3", mode: "2D" })}>Group C → Iframe</button>
+                <button onClick={() => handleGroupChange({ targetGroupId: "group_4", mode: "3D" })}>Group D → Iframe</button>
             </div>
             <div style={{ marginTop: 10, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                 <button onClick={() => handleAddTestLayer("top")}>Add WMS Top</button>

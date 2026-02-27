@@ -3,7 +3,7 @@ import { BuilderLayerType, LayerConfig, LayerTreeConfig, PainterAvailable } from
 const children: LayerConfig[] = [
     {
         "type": BuilderLayerType.GROUP,
-        "layerOptions": { "label": "Mapbox Basemap", shared: true },
+        "layerOptions": { "label": "Commons", shared: true },
         "children": [
             {
                 "type": BuilderLayerType.MAPBOX, // TMS usually maps to WMTS in RIA for many configs
@@ -22,7 +22,7 @@ const children: LayerConfig[] = [
     },
     {
         "type": BuilderLayerType.GROUP,
-        "layerOptions": { "label": "Google Basemap", id: "group_1" },
+        "layerOptions": { "label": "Group A", id: "group_1" },
         "children": [
             {
                 "type": BuilderLayerType.OGC3DTiles,
@@ -42,7 +42,7 @@ const children: LayerConfig[] = [
     },
     {
         "type": BuilderLayerType.GROUP,
-        "layerOptions": { "label": "Azure Basemap", id: "group_2" },
+        "layerOptions": { "label": "Group B", id: "group_2" },
         "children": [
             {
                 "type": BuilderLayerType.GEOJSON,
@@ -82,7 +82,7 @@ const children: LayerConfig[] = [
     },
     {
         "type": BuilderLayerType.GROUP,
-        "layerOptions": { "label": "Google Basemap", id: "group_3" },
+        "layerOptions": { "label": "Group C", id: "group_3" },
         "children": [
             {
                 "type": BuilderLayerType.GOOGLE, // TMS usually maps to WMTS in RIA for many configs
@@ -95,7 +95,7 @@ const children: LayerConfig[] = [
     },
     {
         "type": BuilderLayerType.GROUP,
-        "layerOptions": { "label": "Azure Basemap", id: "group_4" },
+        "layerOptions": { "label": "Group D", id: "group_4" },
         "children": [
             {
                 "type": BuilderLayerType.AZURE, // TMS usually maps to WMTS in RIA for many configs
