@@ -39,7 +39,7 @@ Add a powerful map to your application in minutes.
 
 ```tsx
 import React, { useEffect, useRef } from "react";
-import { sendToIframe, listenFromIframes, MapModeType } from "greencubes-iframe-interface";
+import { sendToIframe, listenFromIframes, MapModeType, ParentToIframeMsg, IframeToParentMsg } from "greencubes-iframe-interface";
 
 const MyMapApp = () => {
     const mapRef = useRef<HTMLIFrameElement>(null);
@@ -48,19 +48,19 @@ const MyMapApp = () => {
         // 🎧 Single listener at the top level
         const stop = listenFromIframes({ mainMap: mapRef.current }, (msg) => {
             switch (msg.type) {
-                case "MapReady":
+                case IframeToParentMsg.onMapReady:
                     console.log("Map is ready in mode:", msg.data.mode);
                     if (mapRef.current) {
                         sendToIframe(mapRef.current, {
-                            type: "SetInitialMapSetup",
+                            type: ParentToIframeMsg.SetInitialMapSetup,
                             // Assuming SiteSettings is imported/defined elsewhere
                             data: { settings: SiteSettings }
                         });
                     }
                     break;
 
-                case "ClickedItem":
-                    console.info("Feature selected:", msg.data.feature.properties?.name);
+                case IframeToParentMsg.ClickedItem:
+                    console.info("Feature selected from layer", msg.data.layerId, ":", msg.data.feature.properties?.name);
                     break;
             }
         });
@@ -72,7 +72,7 @@ const MyMapApp = () => {
     const groupChange = (options: { targetGroupId: string; mode?: MapModeType }) => {
         if (mapRef.current) {
             sendToIframe(mapRef.current, {
-                type: "SetLayerGroup",
+                type: ParentToIframeMsg.SetLayerGroup,
                 data: options
             });
         }
@@ -81,7 +81,7 @@ const MyMapApp = () => {
     const zoomToDefault = () => {
         if (mapRef.current) {
             sendToIframe(mapRef.current, {
-                type: "ZoomToLayer",
+                type: ParentToIframeMsg.ZoomToLayer,
                 data: { animate: true }
             });
         }
@@ -117,9 +117,12 @@ const MyMapApp = () => {
 
 ## 📖 The Messaging API
 
+> [!TIP]
+> While raw strings are supported for message types, we **strongly recommend** using the provided `ParentToIframeMsg` and `IframeToParentMsg` enums for full type safety and IDE autocomplete.
+
 ## 🕹️ Parent → Iframe Commands
 
-Sent via `sendToIframe(iframeEl, { type, data, frameId? })`.
+Sent via `sendToIframe(iframeEl, { type, data, frameId? })`. Preferred `type` via `ParentToIframeMsg`.
 
 | Message `type` | `data` Payload Parameters | Notes |
 | --- | --- | --- |
@@ -127,24 +130,25 @@ Sent via `sendToIframe(iframeEl, { type, data, frameId? })`.
 | **`SetLayerGroup`** | `{ targetGroupId: string, mode?: MapModeType }` | `mode` is optional. |
 | **`SetLayerVisibility`** | `{ layerId: string, visible: boolean }` | Direct toggle for a specific node. |
 | **`SetProjection`** | `{ mode: MapModeType }` | `mode` is `"2D" | "3D"`. |
-| **`HighlightFeature`** | `{ featureId: JSONFeatureId }` | Focuses on a single ID. |
-| **`SelectFeatures`** | `{ featureIds: JSONFeatureId[] }` | Takes an array of IDs. |
+| **`SelectFeature`** | `{ featureId: JSONFeatureId, layerId?: string }` | Focuses on a single ID. |
+| **`SelectFeatures`** | `{ featureIds: JSONFeatureId[], layerId?: string }` | Takes an array of IDs. |
 | **`RemoveLayer`** | `{ layerId?: string }` | If `layerId` is omitted, behavior depends on implementation. |
-| **`ZoomToSelection`** | `{ featureIds: JSONFeatureId[], animate?: boolean | MapNavigatorAnimationOptions }` | `animate` can be a simple `true/false` or `{ duration: number }`. |
+| **`ZoomToSelection`** | `{ featureIds: JSONFeatureId[], layerId?: string, animate?: boolean | MapNavigatorAnimationOptions }` | `animate` can be a simple `true/false` or `{ duration: number }`. |
 | **`ZoomToLayer`** | `{ layerId?: string, animate?: boolean | MapNavigatorAnimationOptions }` | Fits view to layer bounds. |
 | **`AddLayer`** | `{ options: AddLayerOptions }` | Full configuration for new data. |
+| **`MoveLayer`** | `{ options: MoveLayerOptions }` | Reorder or move layers between groups. |
 
 ---
 
 ## 📥 Iframe → Parent Events
 
-Received via `listenFromIframes(refs, (msg, frameId?) => ... )`.
+Received via `listenFromIframes(refs, (msg, frameId?) => ... )`. Preferred `type` via `IframeToParentMsg`.
 
 | Message `type` | `data` Payload Parameters | Context |
 | --- | --- | --- |
-| **`MapReady`** | `{ mode: MapModeType }` | Sent once the Luciad engine is initialized. |
-| **`ClickedItem`** | `{ feature: JSONFeature }` | Contains GeoJSON geometry and properties. |
-| **`SelectedItems`** | `{ features: JSONFeature[] }` | Array of all currently active selections. |
+| **`onMapReady`** | `{ mode: MapModeType }` | Sent once the Luciad engine is initialized. |
+| **`ClickedItem`** | `{ feature: JSONFeature, layerId: string }` | Contains GeoJSON geometry and properties. |
+| **`SelectionChanged`** | `{ selectedItems: {[key:string]: JSONFeature[]} }` | Map of layerId to selected features. |
 | **`ProjectionChanged`** | `{ mode: MapModeType }` | User switched 2D/3D via the map UI. |
 | **`TargetGroupChanged`** | `{ targetGroupId: string, mode: MapModeType }` | User changed the active group. |
 | **`LayerTreeChanged`** | `{ layerId: string, type: LayerTreeChangedEventType, layerTree: JSONLayerTree }` | `type` is `"NodeAdded" | "NodeRemoved" | "NodeMoved"`. |
