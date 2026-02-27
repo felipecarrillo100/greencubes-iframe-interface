@@ -8,7 +8,7 @@ import { ViewToolIBar } from "../buttons/ViewToolIBar";
 import { FeatureLayer } from "@luciad/ria/view/feature/FeatureLayer.js";
 import type { Feature, FeatureId } from "@luciad/ria/model/feature/Feature.js";
 import { MapNavigatorAnimationOptions } from "@luciad/ria/view/MapNavigator";
-import { LayerTreeNodeChangeEvent } from "@luciad/ria/view/LayerTree";
+import {LayerTree, LayerTreeNodeChangeEvent} from "@luciad/ria/view/LayerTree";
 import { listenFromParent, sendToParent, ParentToIframeMsg, IframeToParentMsg } from "@library/index";
 import type { MapModeType, ParentToIframeMessage, JSONLayerTree, LayerTreeChangedEventType, AddLayerOptions } from "@library/index";
 import type { InitialMapSetup } from "@library/interfaces";
@@ -215,15 +215,26 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
         }
     }
 
+    const makeFeatureLayersClickable = (layerTree:  LayerTree)=>{
+        const featureLayers = LayerBuilder.getFeatureLayers(layerTree);
+        for (const featureLayer of featureLayers) {
+            featureLayer.onClick = triggerOnClickAction(featureLayer.id);
+        }
+    }
+
     const setInitialMapSetup = (options: { settings: InitialMapSetup }) => {
         if (options.settings && mapRef.current) {
             setProjection(options.settings);
             LayerBuilder.build(mapRef.current.layerTree, options.settings).then(() => {
+                if (!mapRef.current) return;
+                // MAke all vector layers clickable!!!
+                makeFeatureLayersClickable(mapRef.current.layerTree);
+
                 if (options.settings.targetGroupId) {
-                    mapRef.current && LayerBuilder.setTargetGroup(mapRef.current.layerTree, options.settings.targetGroupId);
+                    LayerBuilder.setTargetGroup(mapRef.current.layerTree, options.settings.targetGroupId);
                 }
-                if (options.settings.boundsFeatureLayerID && mapRef.current) {
-                    const boundsLayer = mapRef.current?.layerTree.findLayerById(options.settings.boundsFeatureLayerID);
+                if (options.settings.boundsFeatureLayerID ) {
+                    const boundsLayer = mapRef.current.layerTree.findLayerById(options.settings.boundsFeatureLayerID);
                     if (boundsLayer instanceof FeatureLayer) {
                         if (mapRef.current.reference.equals(World3DReference)) {
                             //  restrictBounds3D(mapRef.current, boundsLayer);
@@ -232,14 +243,14 @@ export const LuciadMap: React.FC<Props> = (props: Props) => {
                         }
                     }
                 }
-                if (options.settings.targetFeatureLayerID && mapRef.current) {
+                if (options.settings.targetFeatureLayerID) {
                     const targetLayer = mapRef.current?.layerTree.findLayerById(options.settings.targetFeatureLayerID);
                     if (targetLayer && targetLayer instanceof FeatureLayer) {
                         if (selectionChangeHandle.current !== null) {
                             selectionChangeHandle.current.remove();
                             selectionChangeHandle.current = null;
                         }
-                        targetLayer.onClick = triggerOnClickAction(targetLayer.id);
+                       // targetLayer.onClick = triggerOnClickAction(targetLayer.id);
                         activeLayer.current = targetLayer;
                         selectionChangeHandle.current = addListenerOnSelectionChange(mapRef.current, targetLayer, triggerOnSelectionChangeAction)
                     }

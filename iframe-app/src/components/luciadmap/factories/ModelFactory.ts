@@ -3,9 +3,9 @@ import {
     WMSTileSetModel as WMSModel,
     WMSTileSetModelConstructorOptions
 } from "@luciad/ria/model/tileset/WMSTileSetModel";
-import { WFSFeatureStore } from "@luciad/ria/model/store/WFSFeatureStore";
-import { OGC3DTilesModel } from "@luciad/ria/model/tileset/OGC3DTilesModel";
-import { HSPCTilesModel } from "@luciad/ria/model/tileset/HSPCTilesModel";
+import {WFSFeatureStore, WFSFeatureStoreCreateOptions} from "@luciad/ria/model/store/WFSFeatureStore";
+import {CreateOGC3DTilesModelOptions, OGC3DTilesModel} from "@luciad/ria/model/tileset/OGC3DTilesModel";
+import {CreateHSPCTilesModelOptions, HSPCTilesModel} from "@luciad/ria/model/tileset/HSPCTilesModel";
 import {WMTSTileSetModel, WMTSTileSetModelCreateOptions} from "@luciad/ria/model/tileset/WMTSTileSetModel";
 import { FeatureModel } from "@luciad/ria/model/feature/FeatureModel.js";
 import { getReference } from "@luciad/ria/reference/ReferenceProvider.js";
@@ -25,7 +25,7 @@ import {
     AzureMapsTileSetModelCreateOptions,
     createAzureMapsTileSetModel
 } from "@luciad/ria/model/tileset/AzureMapsTileSetModel";
-import { FusionTileSetModel } from "@luciad/ria/model/tileset/FusionTileSetModel";
+import {FusionTileSetModel, FusionTileSetModelCreateOptions} from "@luciad/ria/model/tileset/FusionTileSetModel";
 
 import {
     WMTSModelOptions,
@@ -38,6 +38,7 @@ import {
     TMSOptions,
     FusionTileSetModelOption
 } from "../../../../../src";
+import {HttpRequestHeaders} from "@luciad/ria/util/HttpRequestOptions";
 
 const GoogleLogoUrl = "./images/google.png";
 const AzureLogoUrl = "./images/azure.svg";
@@ -51,7 +52,7 @@ export class ModelFactory {
             ...options
         }
         const { url, coverageId, ...rest } = defaults;
-        return FusionTileSetModel.createFromURL(url, coverageId, rest);
+        return FusionTileSetModel.createFromURL(url, coverageId, rest as FusionTileSetModelCreateOptions);
     }
 
     static async createGoogleMapsModel(options?: GoogleMapsTileSetModelCreateOptions): Promise<GoogleMapsTileSetModel> {
@@ -92,7 +93,10 @@ export class ModelFactory {
         };
         return new UrlTileSetModel({
             baseURL: url, //  url example --> "https://a.tile.openstreetmap.org/{z}/{x}/{-y}.png",
-            structure: quadTreeStructure
+            structure: quadTreeStructure,
+            requestParameters: options?.requestParameters,
+            requestHeaders: options?.requestHeaders as HttpRequestHeaders,
+            credentials: options?.credentials
         });
     }
 
@@ -122,7 +126,7 @@ export class ModelFactory {
      */
     static async createWFSModel(options: WFSModelOptions): Promise<FeatureModel> {
         const { url, featureTypeName, ...rest } = options;
-        const store = await WFSFeatureStore.createFromURL(url, featureTypeName, rest);
+        const store = await WFSFeatureStore.createFromURL(url, featureTypeName, rest as WFSFeatureStoreCreateOptions);
         return new FeatureModel(store);
     }
 
@@ -130,16 +134,18 @@ export class ModelFactory {
      * Creates an OGC 3D Tiles Model using create.
      */
     static async create3DTilesModel(options: OGC3DModelOptions): Promise<OGC3DTilesModel> {
-        const { url, ...rest } = options;
-        return OGC3DTilesModel.create(url, rest);
+        const { url, crs, ...rest } = options;
+        const reference = crs ? getReference(crs) : undefined;
+        return OGC3DTilesModel.create(url, {...rest as CreateOGC3DTilesModelOptions, reference});
     }
 
     /**
      * Creates an HSPC (Point Cloud) Model using create.
      */
     static async createHSPCModel(options: HSPCModelOptions): Promise<HSPCTilesModel> {
-        const { url, ...rest } = options;
-        return HSPCTilesModel.create(url, rest);
+        const { url, crs, ...rest } = options;
+        const reference = crs ? getReference(crs) : undefined;
+        return HSPCTilesModel.create(url, {...rest as CreateHSPCTilesModelOptions, reference});
     }
 
     public static async createGeoJSONModel(options: GeoJSONModelOptions): Promise<FeatureModel> {

@@ -10,6 +10,7 @@ import { Layer } from "@luciad/ria/view/Layer.js";
 import { RasterTileSetLayer } from "@luciad/ria/view/tileset/RasterTileSetLayer.js";
 import { FusionTileSetModel } from "@luciad/ria/model/tileset/FusionTileSetModel";
 import { AddLayerOptions } from "../../../../../src";
+import {FeatureLayer} from "@luciad/ria/view/feature/FeatureLayer.js";
 
 
 /**
@@ -246,5 +247,23 @@ export class LayerBuilder {
                 console.warn(`[LuciadRIA] Could not restore visibility: Layer with ID "${state.id}" not found.`);
             }
         }
+    }
+
+    static getFeatureLayers(layerTree: LayerTree): FeatureLayer[] {
+        const featureLayers: FeatureLayer[] = [];
+        const layerTreeVisitor = {
+            visitLayer: (layer: Layer) => {
+                if (layer instanceof FeatureLayer) {
+                        featureLayers.push(layer);
+                }
+                return LayerTreeVisitor.ReturnValue.CONTINUE;
+            },
+            visitLayerGroup: (layerGroup: LayerGroup) => {
+                layerGroup.visitChildren(layerTreeVisitor, LayerTreeNode.VisitOrder.TOP_DOWN);
+                return LayerTreeVisitor.ReturnValue.CONTINUE;
+            }
+        };
+        layerTree.visitChildren(layerTreeVisitor, LayerTreeNode.VisitOrder.TOP_DOWN);
+        return featureLayers;
     }
 }

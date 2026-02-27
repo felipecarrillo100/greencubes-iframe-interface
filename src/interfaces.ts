@@ -18,7 +18,18 @@ export enum PainterAvailable {
     Experience = "Experience",
 }
 
-export interface WMTSModelOptions {
+export interface JSONHTTPRequest {
+    /** Whether to include credentials (cookies) in cross-origin requests */
+    credentials?: boolean
+    /** * Custom headers to include in the request.
+     * Note: Luciad requires these to be strings.
+     */
+    requestHeaders?: Record<string, string>; // Changed from string | number | boolean
+    /** Custom query parameters to include in the request */
+    requestParameters?: Record<string, string | number | boolean>;
+}
+
+export interface WMTSModelOptions extends JSONHTTPRequest {
     url: string;
     layer: string;
     style?: string;
@@ -27,30 +38,32 @@ export interface WMTSModelOptions {
     format?: string;
     levelRange?: { min: number; max: number };
     dimensions?: Record<string, string | number | boolean>;
-    requestParameters?: Record<string, string | number | boolean>;
     useQuadTreeOnly?: boolean;
     preferredRequestEncoding?: string;
     isSparseTileSet?: boolean;
     subdomains?: string[];
 }
 
-export interface WFSModelOptions {
+export interface WFSModelOptions extends JSONHTTPRequest {
     url: string;
     featureTypeName: string;
     crs?: string;
     maxFeatures?: number;
-    requestParameters?: Record<string, string | number | boolean>;
+    /** Whether the layer trigger an event on feature click */
+    clickable?: boolean;
 }
 
-export interface OGC3DModelOptions {
+export interface OGC3DModelOptions extends JSONHTTPRequest {
     url: string;
+    crs?: string;
 }
 
-export interface HSPCModelOptions {
+export interface HSPCModelOptions extends JSONHTTPRequest {
     url: string;
+    crs?: string;
 }
 
-export interface WMSTileSetModelOptions {
+export interface WMSTileSetModelOptions extends JSONHTTPRequest {
     getMapRoot: string;
     layers: string[];
     crs?: string;
@@ -67,7 +80,6 @@ export interface WMSTileSetModelOptions {
     sld?: string;
     sldBody?: string;
     subdomains?: string[];
-    requestParameters?: Record<string, any>;
     dimensions?: Record<string, any>;
 }
 
@@ -78,20 +90,18 @@ export interface AzureMapsModelOptions {
     tileSetId?: string;
 }
 
-export interface GeoJSONModelOptions {
+export interface GeoJSONModelOptions extends JSONHTTPRequest {
     url: string;
     crs?: string;
-    /** Whether to include credentials (cookies) in cross-origin requests */
-    credentials?: boolean;
-    /** Custom headers to include in the request */
-    requestHeaders?: Record<string, string>;
+    /** Whether the layer trigger an event on feature click */
+    clickable?: boolean;
 }
 
-export interface TMSOptions {
+export interface TMSOptions extends JSONHTTPRequest{
     url?: string;
 }
 
-export interface FusionTileSetModelOption {
+export interface FusionTileSetModelOption extends JSONHTTPRequest {
     url?: string;
     coverageId?: string;
 }
@@ -169,6 +179,6 @@ export interface LayerTreeConfig {
 export interface InitialMapSetup extends LayerTreeConfig {
     mode: MapModeType;
     targetGroupId: string;
-    targetFeatureLayerID?: string
-    boundsFeatureLayerID?: string
+    targetFeatureLayerID?: string;
+    boundsFeatureLayerID?: string;
 }
